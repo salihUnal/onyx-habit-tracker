@@ -1,29 +1,38 @@
 {
   "expo": {
-    "name": "onyx-habit-tracker",
+    "name": "Onyx",
     "slug": "onyx-habit-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/images/onyx-app-icon-1024x1024.png",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/images/onyx-app-icon-1024x1024.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#121212"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.onyx.habittracker",
+      "icon": "./assets/images/onyx-app-icon-1024x1024.png"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/onyx-app-icon-1024x1024.png",
+        "backgroundColor": "#121212"
       },
-      "edgeToEdgeEnabled": true
+      "package": "com.onyx.habittracker",
+      "edgeToEdgeEnabled": true,
+      "icon": "./assets/images/onyx-app-icon-512x512.png"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/images/onyx-app-icon-512x512.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
     }
   }
 }
