@@ -8,6 +8,7 @@ const defaultUserContext = {
   login: () => { },
   logout: () => { },
   upgradeToPro: () => { },
+  updateUser: () => { },
 };
 
 const UserContext = createContext(defaultUserContext);
@@ -23,6 +24,7 @@ export const UserProvider = ({ children }) => {
 
   const checkUser = async () => {
     try {
+      // Check for active session
       const savedUser = await AsyncStorage.getItem('user');
       const savedProStatus = await AsyncStorage.getItem('isPro');
 
@@ -40,12 +42,36 @@ export const UserProvider = ({ children }) => {
   };
 
   const login = async (mockUserData) => {
-    setUser(mockUserData);
-    await AsyncStorage.setItem('user', JSON.stringify(mockUserData));
+    try {
+      // Check if we have a saved profile for this user
+      const savedProfileJson = await AsyncStorage.getItem('userProfile');
+      let userToSet = mockUserData;
+
+      if (savedProfileJson) {
+        const savedProfile = JSON.parse(savedProfileJson);
+        // Merge saved profile (name, avatar) with login data (id, email method)
+        userToSet = {
+          ...mockUserData,
+          name: savedProfile.name || mockUserData.name,
+          avatar: savedProfile.avatar || mockUserData.avatar,
+          // Keep the email from login if provided, otherwise fallback to saved
+          email: mockUserData.email || savedProfile.email
+        };
+      }
+
+      setUser(userToSet);
+      await AsyncStorage.setItem('user', JSON.stringify(userToSet));
+
+      // Also save/update the profile
+      await AsyncStorage.setItem('userProfile', JSON.stringify(userToSet));
+    } catch (error) {
+      console.error('Login error:', error);
+    }
   };
 
   const logout = async () => {
     setUser(null);
+    // Only remove the active session 'user', keep 'userProfile' for next login
     await AsyncStorage.removeItem('user');
   };
 
@@ -54,8 +80,16 @@ export const UserProvider = ({ children }) => {
     await AsyncStorage.setItem('isPro', 'true');
   };
 
+  const updateUser = async (updatedData) => {
+    const updatedUser = { ...user, ...updatedData };
+    setUser(updatedUser);
+    await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+    // Update the persistent profile as well
+    await AsyncStorage.setItem('userProfile', JSON.stringify(updatedUser));
+  };
+
   return (
-    <UserContext.Provider value={{ user, isPro, login, logout, upgradeToPro, loading }}>
+    <UserContext.Provider value={{ user, isPro, login, logout, upgradeToPro, updateUser, loading }}>
       {children}
     </UserContext.Provider>
   );

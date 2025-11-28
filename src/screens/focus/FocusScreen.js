@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Keyboard } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Play, Pause, RotateCcw } from 'lucide-react-native';
+import { useLanguage } from '../../context/LanguageContext';
+import { Play, Pause, RotateCcw, MoreHorizontal } from 'lucide-react-native';
 
 const FocusScreen = () => {
   const theme = useTheme();
   const { isPro } = useUser();
+  const { t } = useLanguage();
+  const [selectedDuration, setSelectedDuration] = useState(25);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customMinutes, setCustomMinutes] = useState('');
   const timerRef = useRef(null);
+
+  const durations = [15, 25, 50];
 
   useEffect(() => {
     if (isActive && timeLeft > 0) {
@@ -27,11 +33,32 @@ const FocusScreen = () => {
 
   const toggleTimer = () => {
     setIsActive(!isActive);
+    setShowCustomInput(false);
+    Keyboard.dismiss();
   };
 
   const resetTimer = () => {
     setIsActive(false);
-    setTimeLeft(25 * 60);
+    setTimeLeft(selectedDuration * 60);
+  };
+
+  const handleDurationSelect = (duration) => {
+    setSelectedDuration(duration);
+    setTimeLeft(duration * 60);
+    setIsActive(false);
+    setShowCustomInput(false);
+  };
+
+  const handleCustomDurationSubmit = () => {
+    const minutes = parseInt(customMinutes);
+    if (!isNaN(minutes) && minutes > 0) {
+      setSelectedDuration(minutes);
+      setTimeLeft(minutes * 60);
+      setIsActive(false);
+      setShowCustomInput(false);
+      setCustomMinutes('');
+      Keyboard.dismiss();
+    }
   };
 
   const formatTime = (seconds) => {
@@ -43,16 +70,71 @@ const FocusScreen = () => {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
-        <Text style={[styles.title, { color: theme.colors.text }]}>Focus Mode</Text>
-        
+        <Text style={[styles.title, { color: theme.colors.text }]}>{t('focusMode')}</Text>
+
         <View style={[styles.timerContainer, { borderColor: theme.colors.primary }]}>
           <Text style={[styles.timerText, { color: theme.colors.text }]}>
             {formatTime(timeLeft)}
           </Text>
         </View>
 
+        <View style={styles.durationContainer}>
+          {durations.map((duration) => (
+            <TouchableOpacity
+              key={duration}
+              style={[
+                styles.durationButton,
+                selectedDuration === duration && { backgroundColor: theme.colors.primary },
+                { borderColor: theme.colors.border, borderWidth: 1 }
+              ]}
+              onPress={() => handleDurationSelect(duration)}
+              disabled={isActive}
+            >
+              <Text style={[
+                styles.durationText,
+                { color: selectedDuration === duration ? 'white' : theme.colors.text }
+              ]}>
+                {duration}
+              </Text>
+            </TouchableOpacity>
+          ))}
+
+          <TouchableOpacity
+            style={[
+              styles.durationButton,
+              showCustomInput && { backgroundColor: theme.colors.primary },
+              { borderColor: theme.colors.border, borderWidth: 1 }
+            ]}
+            onPress={() => setShowCustomInput(!showCustomInput)}
+            disabled={isActive}
+          >
+            <MoreHorizontal size={20} color={showCustomInput ? 'white' : theme.colors.text} />
+          </TouchableOpacity>
+        </View>
+
+        {showCustomInput && (
+          <View style={styles.customInputContainer}>
+            <TextInput
+              style={[styles.customInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
+              placeholder={t('enterMinutes')}
+              placeholderTextColor={theme.colors.textSecondary}
+              keyboardType="number-pad"
+              value={customMinutes}
+              onChangeText={setCustomMinutes}
+              onSubmitEditing={handleCustomDurationSubmit}
+              autoFocus
+            />
+            <TouchableOpacity
+              style={[styles.customButton, { backgroundColor: theme.colors.primary }]}
+              onPress={handleCustomDurationSubmit}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={styles.controls}>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={toggleTimer}
             style={[styles.controlButton, { backgroundColor: theme.colors.primary }]}
           >
@@ -63,7 +145,7 @@ const FocusScreen = () => {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={resetTimer}
             style={[styles.resetButton, { backgroundColor: theme.colors.surface }]}
           >
@@ -74,7 +156,7 @@ const FocusScreen = () => {
 
       {!isPro && (
         <View style={[styles.bannerAd, { backgroundColor: theme.colors.surface }]}>
-           <Text style={{color: theme.colors.textSecondary, fontSize: 10}}>BANNER AD</Text>
+          <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>BANNER AD</Text>
         </View>
       )}
     </View>
@@ -89,6 +171,7 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: 'center',
+    width: '100%',
   },
   title: {
     fontSize: 24,
@@ -103,12 +186,46 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 60,
+    marginBottom: 40,
   },
   timerText: {
     fontSize: 64,
     fontWeight: '200',
     fontVariant: ['tabular-nums'],
+  },
+  durationContainer: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 20,
+  },
+  durationButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  durationText: {
+    fontWeight: '600',
+  },
+  customInputContainer: {
+    flexDirection: 'row',
+    marginBottom: 30,
+    gap: 10,
+    alignItems: 'center',
+  },
+  customInput: {
+    width: 120,
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    textAlign: 'center',
+  },
+  customButton: {
+    padding: 10,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   controls: {
     flexDirection: 'row',
@@ -146,4 +263,3 @@ const styles = StyleSheet.create({
 });
 
 export default FocusScreen;
-

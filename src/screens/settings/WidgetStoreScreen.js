@@ -1,20 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const WidgetStoreScreen = ({ navigation }) => {
   const theme = useTheme();
   const { isPro } = useUser();
+  const { t } = useLanguage();
   const [selectedWidget, setSelectedWidget] = useState('basic');
 
-  const handleSelect = (id, isPremium) => {
+  useEffect(() => {
+    loadWidgetSelection();
+  }, []);
+
+  const loadWidgetSelection = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('selectedWidget');
+      if (saved) setSelectedWidget(saved);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSelect = async (id, isPremium) => {
     if (isPremium && !isPro) {
       navigation.navigate('Paywall');
     } else {
       setSelectedWidget(id);
+      await AsyncStorage.setItem('selectedWidget', id);
     }
   };
 
@@ -24,21 +41,21 @@ const WidgetStoreScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.colors.text }]}>Widget Store</Text>
+        <Text style={[styles.title, { color: theme.colors.text }]}>{t('widgetStore')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-          Customize your home screen experience
+          {t('customizeHome')}
         </Text>
 
         {/* Basic Widget */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.card, 
-            { 
-              backgroundColor: theme.colors.surface, 
-              borderColor: selectedWidget === 'basic' ? theme.colors.primary : theme.colors.border 
+            styles.card,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: selectedWidget === 'basic' ? theme.colors.primary : theme.colors.border
             }
           ]}
           onPress={() => handleSelect('basic', false)}
@@ -49,8 +66,8 @@ const WidgetStoreScreen = ({ navigation }) => {
             <View style={styles.line} />
           </View>
           <View style={styles.cardInfo}>
-            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Minimal List</Text>
-            <Text style={[styles.cardPrice, { color: theme.colors.success }]}>Free</Text>
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>{t('minimalList')}</Text>
+            <Text style={[styles.cardPrice, { color: theme.colors.success }]}>{t('free')}</Text>
           </View>
           {selectedWidget === 'basic' && (
             <View style={[styles.checkCircle, { backgroundColor: theme.colors.primary }]}>
@@ -60,12 +77,12 @@ const WidgetStoreScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         {/* Premium Widget */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.card, 
-            { 
-              backgroundColor: theme.colors.surface, 
-              borderColor: selectedWidget === 'neon' ? theme.colors.primary : theme.colors.border 
+            styles.card,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: selectedWidget === 'neon' ? theme.colors.primary : theme.colors.border
             }
           ]}
           onPress={() => handleSelect('neon', true)}
@@ -77,7 +94,7 @@ const WidgetStoreScreen = ({ navigation }) => {
             <Text style={styles.neonText}>ONYX</Text>
           </LinearGradient>
           <View style={styles.cardInfo}>
-            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Neon Cyberpunk</Text>
+            <Text style={[styles.cardTitle, { color: theme.colors.text }]}>{t('neonCyberpunk')}</Text>
             <Text style={[styles.cardPrice, { color: theme.colors.primary }]}>PRO</Text>
           </View>
           {selectedWidget === 'neon' ? (
@@ -180,4 +197,3 @@ const styles = StyleSheet.create({
 });
 
 export default WidgetStoreScreen;
-

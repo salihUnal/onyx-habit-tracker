@@ -39,7 +39,7 @@ export const HabitProvider = ({ children }) => {
     }
   };
 
-  const addHabit = (name) => {
+  const addHabit = (name, category = 'other', reminderTime = null) => {
     if (!isPro && habits.length >= 3) {
       return { success: false, error: 'limit_reached' };
     }
@@ -47,12 +47,22 @@ export const HabitProvider = ({ children }) => {
     const newHabit = {
       id: Date.now().toString(),
       name,
+      category,
+      reminderTime,
       streak: 0,
       completedDates: [],
       createdAt: new Date().toISOString(),
     };
 
     const newHabits = [...habits, newHabit];
+    saveHabits(newHabits);
+    return { success: true };
+  };
+
+  const updateHabit = (id, updates) => {
+    const newHabits = habits.map(habit =>
+      habit.id === id ? { ...habit, ...updates } : habit
+    );
     saveHabits(newHabits);
     return { success: true };
   };
@@ -92,7 +102,7 @@ export const HabitProvider = ({ children }) => {
   };
 
   return (
-    <HabitContext.Provider value={{ habits, addHabit, toggleHabit, deleteHabit }}>
+    <HabitContext.Provider value={{ habits, addHabit, updateHabit, toggleHabit, deleteHabit }}>
       {children}
     </HabitContext.Provider>
   );

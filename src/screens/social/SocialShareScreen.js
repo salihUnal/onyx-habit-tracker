@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Share } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Zap } from 'lucide-react-native';
@@ -10,6 +11,17 @@ const SocialShareScreen = ({ route, navigation }) => {
   const { habit } = route.params;
   const theme = useTheme();
   const { isPro } = useUser();
+  const { t } = useLanguage();
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `I'm on a ${habit.streak} day streak for ${habit.name} on Onyx Habit Tracker! 🚀`,
+      });
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -17,8 +29,8 @@ const SocialShareScreen = ({ route, navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={theme.colors.text} />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.shareButton, { backgroundColor: theme.colors.primary }]}>
-          <Text style={styles.shareButtonText}>Share to Story</Text>
+        <TouchableOpacity onPress={handleShare} style={[styles.shareButton, { backgroundColor: theme.colors.primary }]}>
+          <Text style={styles.shareButtonText}>{t('shareToStory')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -33,14 +45,14 @@ const SocialShareScreen = ({ route, navigation }) => {
             </View>
             <Text style={styles.habitName}>{habit.name}</Text>
             <Text style={styles.streakCount}>{habit.streak}</Text>
-            <Text style={styles.streakLabel}>DAY STREAK</Text>
+            <Text style={styles.streakLabel}>{t('dayStreak')}</Text>
           </View>
 
           <View style={styles.footer}>
             <Text style={styles.appName}>ONYX</Text>
             {!isPro && (
               <View style={styles.watermark}>
-                <Text style={styles.watermarkText}>Get Onyx on App Store</Text>
+                <Text style={styles.watermarkText}>{t('getOnyx')}</Text>
               </View>
             )}
           </View>
@@ -48,12 +60,12 @@ const SocialShareScreen = ({ route, navigation }) => {
       </View>
 
       {!isPro && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.removeWatermarkButton}
           onPress={() => navigation.navigate('Paywall')}
         >
           <Text style={[styles.removeWatermarkText, { color: theme.colors.textSecondary }]}>
-            Remove Watermark
+            {t('removeWatermark')}
           </Text>
         </TouchableOpacity>
       )}
@@ -93,7 +105,7 @@ const styles = StyleSheet.create({
   },
   storyCanvas: {
     width: '100%',
-    aspectRatio: 9/16,
+    aspectRatio: 9 / 16,
     borderRadius: 24,
     padding: 40,
     justifyContent: 'space-between',
