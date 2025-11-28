@@ -1,96 +1,75 @@
-// src/navigation/AppNavigator.js
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Platform } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+import { useUser } from '../context/UserContext';
+import { Home, Target, Settings } from 'lucide-react-native';
+
+// Screens
+import AuthScreen from '../screens/auth/AuthScreen';
 import HomeScreen from '../screens/home/HomeScreen';
+import FocusScreen from '../screens/focus/FocusScreen';
+import SettingsScreen from '../screens/settings/SettingsScreen';
+import WidgetStoreScreen from '../screens/settings/WidgetStoreScreen';
+import PaywallScreen from '../screens/paywall/PaywallScreen';
+import SocialShareScreen from '../screens/social/SocialShareScreen';
 
-// AuthScreen bileşeni
-const AuthScreen = ({ navigation }) => {
-  const { theme } = useTheme();
-
-  return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Text style={[styles.title, { color: theme.colors.text }]}>Onyx</Text>
-      <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-        Alışkanlıklarını Takip Et, Hedeflerine Ulaş
-      </Text>
-      <TouchableOpacity 
-        style={[styles.button, { backgroundColor: theme.colors.primary }]}
-        onPress={() => navigation.replace('Main')}
-      >
-        <Text style={styles.buttonText}>Başla</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Geçici boş ekran bileşeni
-const PlaceholderScreen = () => {
-  const { theme } = useTheme();
-  return (
-    <View style={{ 
-      flex: 1, 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      backgroundColor: theme.colors.background 
-    }}>
-      <Text style={{ color: theme.colors.text }}>Yakında...</Text>
-    </View>
-  );
-};
-
 const MainTabs = () => {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-
-          if (route.name === 'Ana Sayfa') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'İstatistikler') {
-            iconName = focused ? 'stats-chart' : 'stats-chart-outline';
-          } else if (route.name === 'Profil') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
+      screenOptions={{
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
-          paddingTop: 8,
-          paddingBottom: Platform.OS === 'ios' ? 30 : 8,
           height: Platform.OS === 'ios' ? 90 : 60,
+          paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+          paddingTop: 10,
         },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          marginBottom: 4,
-          fontFamily: 'System',
-          fontWeight: '500',
-        },
-        headerShown: false,
-      })}
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarShowLabel: false,
+      }}
     >
-      <Tab.Screen name="Ana Sayfa" component={HomeScreen} />
-      <Tab.Screen name="İstatistikler" component={PlaceholderScreen} />
-      <Tab.Screen name="Profil" component={PlaceholderScreen} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />
+        }}
+      />
+      <Tab.Screen
+        name="Focus"
+        component={FocusScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => <Target size={size} color={color} />
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />
+        }}
+      />
     </Tab.Navigator>
   );
 };
 
 const AppNavigator = () => {
-  const { theme } = useTheme();
-  const [isAuthenticated] = React.useState(true); // Şimdilik true yapıyoruz
+  const theme = useTheme();
+  const { user, loading } = useUser();
+
+  if (loading) {
+    return null; // Or a splash screen
+  }
 
   return (
     <NavigationContainer theme={{
@@ -105,44 +84,27 @@ const AppNavigator = () => {
       },
     }}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isAuthenticated ? (
-          <Stack.Screen name="Main" component={MainTabs} />
-        ) : (
+        {!user ? (
           <Stack.Screen name="Auth" component={AuthScreen} />
+        ) : (
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen
+              name="Paywall"
+              component={PaywallScreen}
+              options={{ presentation: 'modal' }}
+            />
+            <Stack.Screen
+              name="SocialShare"
+              component={SocialShareScreen}
+              options={{ presentation: 'modal' }}
+            />
+            <Stack.Screen name="WidgetStore" component={WidgetStoreScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 18,
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  button: {
-    width: '100%',
-    padding: 15,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-});
 
 export default AppNavigator;
