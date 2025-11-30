@@ -155,9 +155,21 @@ const FocusScreen = () => {
       </View>
 
       {!isPro && (
-        <View style={[styles.bannerAd, { backgroundColor: theme.colors.surface }]}>
-          <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>BANNER AD</Text>
-        </View>
+        <TouchableOpacity
+          style={[styles.bannerAd, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}
+          onPress={() => navigation.navigate('Paywall')}
+        >
+          <View style={styles.adLabelContainer}>
+            <Text style={styles.adLabel}>Ad</Text>
+          </View>
+          <View style={styles.adContent}>
+            <Text style={[styles.adTitle, { color: theme.colors.text }]}>Focus Better with Pro</Text>
+            <Text style={[styles.adDesc, { color: theme.colors.textSecondary }]}>Remove distractions & ads</Text>
+          </View>
+          <View style={[styles.adButton, { backgroundColor: theme.colors.primary }]}>
+            <Text style={styles.adButtonText}>Upgrade</Text>
+          </View>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -256,9 +268,47 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 50,
-    justifyContent: 'center',
+    height: 60,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  adLabelContainer: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  adLabel: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  adContent: {
+    flex: 1,
+  },
+  adTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  adDesc: {
+    fontSize: 10,
+  },
+  adButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  adButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   }
 });
 

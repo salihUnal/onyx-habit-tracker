@@ -6,7 +6,7 @@ import { useHabits } from '../../context/HabitContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Zap, Plus, Share2, Check, Briefcase, BookOpen, Brain, Dumbbell, Heart, Clock, Search, Filter, Edit2, X, Star, Trash2, Tag } from 'lucide-react-native';
+import { Zap, Plus, Share2, Check, Briefcase, BookOpen, Brain, Dumbbell, Heart, Clock, Search, Filter, Edit2, X, Star, Trash2, Tag, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
@@ -26,8 +26,11 @@ const HomeScreen = ({ navigation }) => {
   const theme = useTheme();
   const colors = theme?.colors || {};
   const { user, isPro } = useUser();
-  const { habits, addHabit, updateHabit, toggleHabit, deleteHabit } = useHabits();
+  const { habits, addHabit, updateHabit, toggleHabit, deleteHabit, extraHabits } = useHabits();
   const { t, language } = useLanguage();
+
+  // Date State
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Modal States
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -65,18 +68,20 @@ const HomeScreen = ({ navigation }) => {
   const allCategories = [...defaultCategories, ...customCategories];
 
   const today = new Date();
+  const selectedDateStr = selectedDate.toISOString().split('T')[0];
+
   const localeMap = {
     'English': 'en-US',
-    'Turkish': 'tr-TR',
+    'Türkçe': 'tr-TR',
     'Spanish': 'es-ES',
     'German': 'de-DE',
     'Italian': 'it-IT',
     'Russian': 'ru-RU',
     'Chinese': 'zh-CN'
   };
-  const dateString = today.toLocaleDateString(localeMap[language] || 'en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const dateString = selectedDate.toLocaleDateString(localeMap[language] || 'en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-  const completedCount = (habits || []).filter(h => h.completedDates.includes(today.toISOString().split('T')[0])).length;
+  const completedCount = (habits || []).filter(h => h.completedDates.includes(selectedDateStr)).length;
   const progress = (habits || []).length > 0 ? completedCount / habits.length : 0;
 
   useEffect(() => {
@@ -84,6 +89,12 @@ const HomeScreen = ({ navigation }) => {
     scheduleDailyNotification();
     loadCustomCategories();
   }, []);
+
+  const changeDate = (days) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + days);
+    setSelectedDate(newDate);
+  };
 
   const loadCustomCategories = async () => {
     try {
@@ -174,7 +185,7 @@ const HomeScreen = ({ navigation }) => {
           closeModal();
         } else if (result.error === 'limit_reached') {
           closeModal();
-          navigation.navigate('Paywall');
+          navigation.navigate('Paywall', { trigger: 'habit_limit' });
         }
       }
     }
@@ -207,8 +218,8 @@ const HomeScreen = ({ navigation }) => {
       setSelectedCategory(habit.category || 'other');
       setReminderTime(habit.reminderTime);
     } else {
-      if (!isPro && habits.length >= 3) {
-        navigation.navigate('Paywall');
+      if (!isPro && habits.length >= (5 + (extraHabits || 0))) {
+        navigation.navigate('Paywall', { trigger: 'habit_limit' });
         return;
       }
       setEditingHabit(null);
@@ -229,9 +240,9 @@ const HomeScreen = ({ navigation }) => {
 
   const handleToggleHabit = (id) => {
     const habit = habits.find(h => h.id === id);
-    const isCompleted = habit.completedDates.includes(today.toISOString().split('T')[0]);
+    const isCompleted = habit.completedDates.includes(selectedDateStr);
 
-    toggleHabit(id);
+    toggleHabit(id, selectedDateStr);
 
     if (!isCompleted) {
       setShowConfetti(true);
@@ -325,7 +336,16 @@ const HomeScreen = ({ navigation }) => {
         )}
       </View>
 
-      <Text style={[styles.date, { color: colors.textSecondary }]}>{dateString}</Text>
+      {/* Date Navigation */}
+      <View style={styles.dateNav}>
+        <TouchableOpacity onPress={() => changeDate(-1)} style={styles.navButton}>
+          <ChevronLeft size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.date, { color: colors.textSecondary, marginBottom: 0 }]}>{dateString}</Text>
+        <TouchableOpacity onPress={() => changeDate(1)} style={styles.navButton}>
+          <ChevronRight size={24} color={colors.text} />
+        </TouchableOpacity>
+      </View>
 
       {/* Progress Bar */}
       <View style={styles.progressContainer}>
@@ -399,7 +419,7 @@ const HomeScreen = ({ navigation }) => {
           </View>
         )}
         renderItem={({ item }) => {
-          const isCompleted = item.completedDates.includes(today.toISOString().split('T')[0]);
+          const isCompleted = item.completedDates.includes(selectedDateStr);
           const Icon = getCategoryIcon(item.category);
           const iconColor = getCategoryColor(item.category);
 
@@ -417,6 +437,27 @@ const HomeScreen = ({ navigation }) => {
                     <Text style={[styles.streakText, { color: colors.textSecondary }]}>
                       {item.streak} {t('streak')}
                     </Text>
+                    {(() => {
+                      const yesterday = new Date();
+                      yesterday.setDate(yesterday.getDate() - 1);
+                      const yesterdayStr = yesterday.toISOString().split('T')[0];
+                      const isYesterdayCompleted = item.completedDates.includes(yesterdayStr);
+                      const isTodayCompleted = item.completedDates.includes(today.toISOString().split('T')[0]);
+
+                      // Only show repair if yesterday is missed AND streak > 0 (or was > 0)
+                      // Simplified: If yesterday missed, show repair.
+                      if (!isYesterdayCompleted && !isPro) {
+                        return (
+                          <TouchableOpacity
+                            onPress={() => navigation.navigate('Paywall', { trigger: 'streak_repair', habitId: item.id })}
+                            style={styles.repairButton}
+                          >
+                            <Text style={styles.repairText}>Repair</Text>
+                          </TouchableOpacity>
+                        );
+                      }
+                      return null;
+                    })()}
                     {item.reminderTime && (
                       <View style={styles.timeTag}>
                         <Clock size={10} color={colors.textSecondary} />
@@ -433,7 +474,14 @@ const HomeScreen = ({ navigation }) => {
                 <TouchableOpacity onPress={() => openModal(item)} style={styles.actionButton}>
                   <Edit2 size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate('SocialShare', { habit: item })} style={styles.actionButton}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('SocialShare', {
+                    habit: item,
+                    color: iconColor,
+                    categoryIcon: item.category // We'll handle icon mapping in SocialShare or pass the icon name if possible, but passing ID is safer for serialization
+                  })}
+                  style={styles.actionButton}
+                >
                   <Share2 size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleToggleHabit(item.id)} style={[styles.checkbox, { borderColor: iconColor, backgroundColor: isCompleted ? iconColor : 'transparent' }]}>
@@ -648,11 +696,25 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      {!isPro && (
-        <View style={[styles.bannerAd, { backgroundColor: colors.surface }]}>
-          <Text style={{ color: colors.textSecondary, fontSize: 10 }}>BANNER AD</Text>
-        </View>
-      )}
+      {
+        !isPro && (
+          <TouchableOpacity
+            style={[styles.bannerAd, { backgroundColor: colors.surface, borderTopColor: colors.border }]}
+            onPress={() => navigation.navigate('Paywall')}
+          >
+            <View style={styles.adLabelContainer}>
+              <Text style={styles.adLabel}>Ad</Text>
+            </View>
+            <View style={styles.adContent}>
+              <Text style={[styles.adTitle, { color: colors.text }]}>{t('unlockOnyxPro') || 'Unlock Onyx Pro'}</Text>
+              <Text style={[styles.adDesc, { color: colors.textSecondary }]}>{t('removeAdsDesc') || 'Remove ads & get unlimited habits'}</Text>
+            </View>
+            <View style={[styles.adButton, { backgroundColor: colors.primary }]}>
+              <Text style={styles.adButtonText}>{t('upgrade') || 'Upgrade'}</Text>
+            </View>
+          </TouchableOpacity>
+        )
+      }
     </View>
   );
 };
@@ -731,7 +793,75 @@ const styles = StyleSheet.create({
   congratsButton: { paddingVertical: 16, paddingHorizontal: 48, borderRadius: 16, elevation: 4 },
   congratsButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
 
-  bannerAd: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 50, justifyContent: 'center', alignItems: 'center' }
+  bannerAd: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  adLabelContainer: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  adLabel: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  adContent: {
+    flex: 1,
+  },
+  adTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  adDesc: {
+    fontSize: 10,
+  },
+  adButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  adButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  repairButton: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  repairText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  dateNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  navButton: {
+    padding: 8,
+  }
 });
 
 export default HomeScreen;

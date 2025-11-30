@@ -11,7 +11,8 @@ import * as ImagePicker from 'expo-image-picker';
 
 const SettingsScreen = ({ navigation }) => {
     const theme = useTheme();
-    const { user, logout, isPro, updateUser } = useUser();
+    const userContext = useUser();
+    const { user, logout, isPro, updateUser, resetToFree } = userContext;
     const { language, setLanguage, t } = useLanguage();
     const { habits } = useHabits();
 
@@ -31,7 +32,15 @@ const SettingsScreen = ({ navigation }) => {
     const [editedEmail, setEditedEmail] = useState('');
     const [editedAvatar, setEditedAvatar] = useState('');
 
-    const languages = ['English', 'Turkish', 'Spanish', 'German', 'Italian', 'Russian', 'Chinese'];
+    const languages = [
+        { code: 'English', label: 'English' },
+        { code: 'Türkçe', label: 'Türkçe' },
+        { code: 'Spanish', label: 'Español' },
+        { code: 'German', label: 'Deutsch' },
+        { code: 'Italian', label: 'Italiano' },
+        { code: 'Russian', label: 'Русский' },
+        { code: 'Chinese', label: '中文' }
+    ];
 
     const handleLogout = () => {
         logout();
@@ -191,6 +200,23 @@ const SettingsScreen = ({ navigation }) => {
                 <SettingItem icon={Layout} title={t('widgetStore')} onPress={() => navigation.navigate('WidgetStore')} />
                 <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary, marginTop: 24 }]}>{t('account')}</Text>
                 <SettingItem icon={LogOut} title={t('logOut')} onPress={handleLogout} />
+
+                {/* Dev Tool for Testing */}
+                <TouchableOpacity
+                    style={{ marginTop: 40, alignItems: 'center', opacity: 0.3 }}
+                    onPress={() => {
+                        if (isPro) {
+                            // Assuming resetToFree is available in useUser hook now
+                            // We need to cast it or just call it if we updated the context
+                            userContext.resetToFree && userContext.resetToFree();
+                            alert('Reset to Free User');
+                        }
+                    }}
+                >
+                    <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>
+                        DEV: {isPro ? 'Tap to Reset Pro' : 'Free User Mode'}
+                    </Text>
+                </TouchableOpacity>
             </ScrollView>
 
             {/* Language Modal */}
@@ -200,12 +226,12 @@ const SettingsScreen = ({ navigation }) => {
                         <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('selectLanguage')}</Text>
                         {languages.map(lang => (
                             <TouchableOpacity
-                                key={lang}
+                                key={lang.code}
                                 style={[styles.langItem, { borderBottomColor: theme.colors.border }]}
-                                onPress={() => { setLanguage(lang); setLanguageModalVisible(false); }}
+                                onPress={() => { setLanguage(lang.code); setLanguageModalVisible(false); }}
                             >
-                                <Text style={[styles.langText, { color: language === lang ? theme.colors.primary : theme.colors.text }]}>{lang}</Text>
-                                {language === lang && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
+                                <Text style={[styles.langText, { color: language === lang.code ? theme.colors.primary : theme.colors.text }]}>{lang.label}</Text>
+                                {language === lang.code && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
                             </TouchableOpacity>
                         ))}
                         <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.colors.surface }]} onPress={() => setLanguageModalVisible(false)}>

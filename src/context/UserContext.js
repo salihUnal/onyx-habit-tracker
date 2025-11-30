@@ -80,6 +80,11 @@ export const UserProvider = ({ children }) => {
     await AsyncStorage.setItem('isPro', 'true');
   };
 
+  const resetToFree = async () => {
+    setIsPro(false);
+    await AsyncStorage.setItem('isPro', 'false');
+  };
+
   const updateUser = async (updatedData) => {
     const updatedUser = { ...user, ...updatedData };
     setUser(updatedUser);
@@ -89,7 +94,7 @@ export const UserProvider = ({ children }) => {
   };
 
   return (
-    <UserContext.Provider value={{ user, isPro, login, logout, upgradeToPro, updateUser, loading }}>
+    <UserContext.Provider value={{ user, isPro, login, logout, upgradeToPro, resetToFree, updateUser, loading }}>
       {children}
     </UserContext.Provider>
   );

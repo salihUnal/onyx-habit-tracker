@@ -5,12 +5,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useUser } from '../context/UserContext';
-import { Home, Target, Settings } from 'lucide-react-native';
+import { Home, Target, Settings, Unlink } from 'lucide-react-native';
 
 // Screens
 import AuthScreen from '../screens/auth/AuthScreen';
 import HomeScreen from '../screens/home/HomeScreen';
 import FocusScreen from '../screens/focus/FocusScreen';
+import BreakStreakScreen from '../screens/break/BreakStreakScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
 import WidgetStoreScreen from '../screens/settings/WidgetStoreScreen';
 import PaywallScreen from '../screens/paywall/PaywallScreen';
@@ -50,6 +51,13 @@ const MainTabs = () => {
         component={FocusScreen}
         options={{
           tabBarIcon: ({ color, size }) => <Target size={size} color={color} />
+        }}
+      />
+      <Tab.Screen
+        name="BreakStreak"
+        component={BreakStreakScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => <Unlink size={size} color={color} />
         }}
       />
       <Tab.Screen

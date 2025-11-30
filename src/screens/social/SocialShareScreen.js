@@ -1,25 +1,64 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Share } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Share, Platform } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Zap } from 'lucide-react-native';
+import { Zap, Heart, Briefcase, BookOpen, Brain, Dumbbell, Tag } from 'lucide-react-native';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 
 const SocialShareScreen = ({ route, navigation }) => {
-  const { habit } = route.params;
+  const { habit, color, categoryIcon } = route.params;
   const theme = useTheme();
   const { isPro } = useUser();
   const { t } = useLanguage();
+  const viewRef = useRef();
+
+  const iconMap = {
+    'other': Zap,
+    'health': Heart,
+    'work': Briefcase,
+    'learning': BookOpen,
+    'mindfulness': Brain,
+    'fitness': Dumbbell,
+    'custom': Tag
+  };
+
+  let IconComponent = Zap;
+  if (categoryIcon && iconMap[categoryIcon]) {
+    IconComponent = iconMap[categoryIcon];
+  } else if (categoryIcon && categoryIcon.startsWith('custom_')) {
+    IconComponent = Tag;
+  }
+
+  const gradientColors = color
+    ? [color, adjustColor(color, -40)]
+    : [theme.colors.primary, theme.colors.secondary];
 
   const handleShare = async () => {
     try {
-      await Share.share({
-        message: `I'm on a ${habit.streak} day streak for ${habit.name} on Onyx Habit Tracker! 🚀`,
+      const uri = await captureRef(viewRef, {
+        format: 'png',
+        quality: 1,
+        result: 'tmpfile'
       });
+
+      if (Platform.OS === 'android') {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Share to Story'
+        });
+      } else {
+        await Sharing.shareAsync(uri, {
+          UTI: 'public.png', // iOS specific
+          mimeType: 'image/png',
+          dialogTitle: 'Share to Story'
+        });
+      }
     } catch (error) {
-      console.error(error.message);
+      console.error('Sharing failed:', error);
     }
   };
 
@@ -35,28 +74,34 @@ const SocialShareScreen = ({ route, navigation }) => {
       </View>
 
       <View style={styles.canvasContainer}>
-        <LinearGradient
-          colors={[theme.colors.primary, theme.colors.secondary]}
-          style={styles.storyCanvas}
+        <View
+          ref={viewRef}
+          collapsable={false}
+          style={styles.captureContainer}
         >
-          <View style={styles.storyContent}>
-            <View style={styles.iconContainer}>
-              <Zap size={64} color="white" />
-            </View>
-            <Text style={styles.habitName}>{habit.name}</Text>
-            <Text style={styles.streakCount}>{habit.streak}</Text>
-            <Text style={styles.streakLabel}>{t('dayStreak')}</Text>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.appName}>ONYX</Text>
-            {!isPro && (
-              <View style={styles.watermark}>
-                <Text style={styles.watermarkText}>{t('getOnyx')}</Text>
+          <LinearGradient
+            colors={gradientColors}
+            style={styles.storyCanvas}
+          >
+            <View style={styles.storyContent}>
+              <View style={styles.iconContainer}>
+                <IconComponent size={64} color="white" />
               </View>
-            )}
-          </View>
-        </LinearGradient>
+              <Text style={styles.habitName}>{habit.name}</Text>
+              <Text style={styles.streakCount}>{habit.streak}</Text>
+              <Text style={styles.streakLabel}>{t('dayStreak')}</Text>
+            </View>
+
+            <View style={styles.footer}>
+              <Text style={styles.appName}>ONYX</Text>
+              {!isPro && (
+                <View style={styles.watermark}>
+                  <Text style={styles.watermarkText}>{t('getOnyx')}</Text>
+                </View>
+              )}
+            </View>
+          </LinearGradient>
+        </View>
       </View>
 
       {!isPro && (
@@ -72,6 +117,10 @@ const SocialShareScreen = ({ route, navigation }) => {
     </View>
   );
 };
+
+const adjustColor = (color, amount) => {
+  return '#' + color.replace(/^#/, '').replace(/../g, color => ('0' + Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -103,10 +152,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
-  storyCanvas: {
+  captureContainer: {
     width: '100%',
     aspectRatio: 9 / 16,
     borderRadius: 24,
+    overflow: 'hidden', // Ensure rounded corners are captured
+  },
+  storyCanvas: {
+    width: '100%',
+    height: '100%', // Fill the capture container
     padding: 40,
     justifyContent: 'space-between',
     alignItems: 'center',

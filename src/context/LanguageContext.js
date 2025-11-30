@@ -14,7 +14,7 @@ const LanguageContext = createContext(defaultLanguageContext);
 // Map system locales to our supported languages
 const localeMap = {
   en: 'English',
-  tr: 'Turkish',
+  tr: 'Türkçe',
   es: 'Spanish',
   de: 'German',
   it: 'Italian',
