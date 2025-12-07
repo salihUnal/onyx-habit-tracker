@@ -16,12 +16,22 @@ export const HabitProvider = ({ children }) => {
   const [breakHabits, setBreakHabits] = useState([]);
   const [extraHabits, setExtraHabits] = useState(0);
   const [adRewardExpiry, setAdRewardExpiry] = useState(null);
+  const [focusSessionsToday, setFocusSessionsToday] = useState(0);
+  const [lastFocusDate, setLastFocusDate] = useState(null);
+  const [focusState, setFocusState] = useState({
+    isActive: false,
+    startTime: null,
+    durationMinutes: 25,
+    elapsedSeconds: 0, // Accumulated elapsed time before current active session
+    sessionCompleted: false
+  });
   const { isPro } = useUser();
 
   useEffect(() => {
     loadHabits();
     loadBreakHabits();
     loadExtraHabits();
+    loadFocusStats();
   }, []);
 
   const loadHabits = async () => {
@@ -76,33 +86,58 @@ export const HabitProvider = ({ children }) => {
     }
   };
 
+  const loadFocusStats = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const storedDate = await AsyncStorage.getItem('lastFocusDate');
+      const storedCount = await AsyncStorage.getItem('focusSessionsToday');
+
+      if (storedDate === today) {
+        setLastFocusDate(today);
+        setFocusSessionsToday(parseInt(storedCount || '0', 10));
+      } else {
+        setLastFocusDate(today);
+        setFocusSessionsToday(0);
+        await AsyncStorage.setItem('lastFocusDate', today);
+        await AsyncStorage.setItem('focusSessionsToday', '0');
+      }
+    } catch (e) {
+      console.error('Failed to load focus stats', e);
+    }
+  };
+
+  const incrementFocusSession = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    let newCount = 1;
+
+    if (lastFocusDate === today) {
+      newCount = focusSessionsToday + 1;
+    } else {
+      setLastFocusDate(today);
+      await AsyncStorage.setItem('lastFocusDate', today);
+    }
+
+    setFocusSessionsToday(newCount);
+    await AsyncStorage.setItem('focusSessionsToday', newCount.toString());
+  };
+
   const rewardExtraHabit = async () => {
-    const newValue = extraHabits + 1;
     // Set expiry to 1 hour from now (3600000 ms)
     const newExpiry = Date.now() + 3600000;
 
-    console.log('🎁 rewardExtraHabit called:', {
-      oldValue: extraHabits,
-      newValue,
-      newExpiry,
-      expiresIn: '1 hour'
+    setExtraHabits(prev => {
+      const newValue = prev + 1;
+      AsyncStorage.setItem('extraHabits', newValue.toString()).catch(e => console.error(e));
+      return newValue;
     });
 
-    setExtraHabits(newValue);
     setAdRewardExpiry(newExpiry);
-
-    try {
-      await AsyncStorage.setItem('extraHabits', newValue.toString());
-      await AsyncStorage.setItem('adRewardExpiry', newExpiry.toString());
-      console.log('✅ Reward saved to AsyncStorage');
-    } catch (e) {
-      console.error('Failed to save extra habits', e);
-    }
+    AsyncStorage.setItem('adRewardExpiry', newExpiry.toString()).catch(e => console.error(e));
   };
 
   const addHabit = (name, category = 'other', reminderTime = null) => {
     // Check if user needs to use an extra slot
-    if (!isPro && habits.length >= 5) {
+    if (!isPro && habits.length >= 3) {
       if (extraHabits > 0) {
         // Check expiry
         if (adRewardExpiry && Date.now() > adRewardExpiry) {
@@ -140,6 +175,99 @@ export const HabitProvider = ({ children }) => {
     const newHabits = [...habits, newHabit];
     saveHabits(newHabits);
     return { success: true };
+  };
+
+  const startFocus = (durationMinutes) => {
+    // If resuming
+    if (focusState.elapsedSeconds > 0 && focusState.durationMinutes === durationMinutes) {
+      setFocusState(prev => ({ ...prev, isActive: true, startTime: Date.now() }));
+      return { success: true };
+    }
+
+    // New session check
+    if (!isPro && focusSessionsToday >= 2) {
+      // Check for extra slots (reusing extraHabits logic or separate?)
+      // User said "reklam izleme seçeneği çıksın". Use extraHabits for simplicity or return specific error
+      if (extraHabits > 0) {
+        // Consume one extra habit credit for this focus session
+        const newExtra = extraHabits - 1;
+        setExtraHabits(newExtra);
+        AsyncStorage.setItem('extraHabits', newExtra.toString());
+        if (newExtra === 0) {
+          setAdRewardExpiry(null);
+          AsyncStorage.removeItem('adRewardExpiry');
+        }
+
+        // Allow session start
+        setFocusState({
+          isActive: true,
+          startTime: Date.now(),
+          durationMinutes,
+          elapsedSeconds: 0
+        });
+        return { success: true };
+      }
+      return { success: false, error: 'focus_limit_reached' };
+    }
+
+    setFocusState({
+      isActive: true,
+      startTime: Date.now(),
+      durationMinutes,
+      durationMinutes,
+      elapsedSeconds: 0,
+      sessionCompleted: false
+    });
+    return { success: true };
+  };
+
+  const pauseFocus = () => {
+    if (focusState.isActive) {
+      const now = Date.now();
+      const sessionElapsed = (now - focusState.startTime) / 1000;
+      setFocusState(prev => ({
+        ...prev,
+        isActive: false,
+        startTime: null,
+        elapsedSeconds: prev.elapsedSeconds + sessionElapsed
+      }));
+    }
+  };
+
+  const stopFocus = () => {
+    // Calculate total elapsed
+    let totalElapsed = focusState.elapsedSeconds;
+    if (focusState.isActive && focusState.startTime) {
+      totalElapsed += (Date.now() - focusState.startTime) / 1000;
+    }
+
+    const totalDurationSeconds = focusState.durationMinutes * 60;
+
+    // If completed or > 50%
+    let completed = false;
+    if (totalElapsed >= totalDurationSeconds || totalElapsed >= (totalDurationSeconds / 2)) {
+      incrementFocusSession();
+      completed = true;
+    }
+
+
+
+    setFocusState({
+      isActive: false,
+      startTime: null,
+      durationMinutes: 25,
+      elapsedSeconds: 0,
+      sessionCompleted: completed
+    });
+  };
+
+  const getFocusTimeLeft = () => {
+    const totalDurationSeconds = focusState.durationMinutes * 60;
+    let currentElapsed = focusState.elapsedSeconds;
+    if (focusState.isActive && focusState.startTime) {
+      currentElapsed += (Date.now() - focusState.startTime) / 1000;
+    }
+    return Math.max(0, totalDurationSeconds - currentElapsed);
   };
 
   const updateHabit = (id, updates) => {
@@ -321,7 +449,14 @@ export const HabitProvider = ({ children }) => {
       breakHabits,
       addBreakHabit,
       toggleBreakHabit,
-      deleteBreakHabit
+      deleteBreakHabit,
+      focusSessionsToday,
+      incrementFocusSession,
+      focusState,
+      startFocus,
+      pauseFocus,
+      stopFocus,
+      getFocusTimeLeft
     }}>
       {children}
     </HabitContext.Provider>

@@ -3,58 +3,97 @@ import { View, Text, TouchableOpacity, StyleSheet, TextInput, Keyboard } from 'r
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useHabits } from '../../context/HabitContext';
 import { Play, Pause, RotateCcw, MoreHorizontal } from 'lucide-react-native';
 
-const FocusScreen = () => {
+const FocusScreen = ({ navigation }) => {
   const theme = useTheme();
   const { isPro } = useUser();
   const { t } = useLanguage();
+  const { focusState, startFocus, pauseFocus, stopFocus, getFocusTimeLeft } = useHabits();
+
   const [selectedDuration, setSelectedDuration] = useState(25);
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [isActive, setIsActive] = useState(false);
+  // Display time left derived from context or local state if idle
+  const [displayTime, setDisplayTime] = useState(25 * 60);
+
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customMinutes, setCustomMinutes] = useState('');
-  const timerRef = useRef(null);
 
   const durations = [15, 25, 50];
 
+  // Sync local selection with context if context is active
   useEffect(() => {
-    if (isActive && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      setIsActive(false);
-      clearInterval(timerRef.current);
+    if (focusState.isActive) {
+      setSelectedDuration(focusState.durationMinutes);
     }
+  }, [focusState.isActive, focusState.durationMinutes]);
 
-    return () => clearInterval(timerRef.current);
-  }, [isActive, timeLeft]);
+  // Timer tick
+  useEffect(() => {
+    let interval;
+    if (focusState.isActive) {
+      // Update immediately
+      setDisplayTime(getFocusTimeLeft());
+
+      interval = setInterval(() => {
+        const left = getFocusTimeLeft();
+        setDisplayTime(left);
+
+        if (left <= 0) {
+          stopFocus(); // Context handles completion logic
+        }
+      }, 1000);
+    } else {
+      // If paused/stopped, show leftover or selected duration
+      if (focusState.elapsedSeconds > 0) {
+        // Paused state
+        setDisplayTime(Math.max(0, (focusState.durationMinutes * 60) - focusState.elapsedSeconds));
+      } else {
+        // Idle state
+        setDisplayTime(selectedDuration * 60);
+      }
+    }
+    return () => clearInterval(interval);
+  }, [focusState, selectedDuration, getFocusTimeLeft]);
+
+
 
   const toggleTimer = () => {
-    setIsActive(!isActive);
+    if (focusState.isActive) {
+      pauseFocus();
+    } else {
+      const result = startFocus(selectedDuration);
+      if (!result.success) {
+        if (result.error === 'focus_limit_reached') {
+          // Show Paywall or Ad prompt
+          navigation.navigate('Paywall', { trigger: 'focus_limit' });
+        }
+      }
+    }
     setShowCustomInput(false);
     Keyboard.dismiss();
   };
 
   const resetTimer = () => {
-    setIsActive(false);
-    setTimeLeft(selectedDuration * 60);
+    stopFocus();
+    // Resetting stops and clears elapsed.
   };
 
   const handleDurationSelect = (duration) => {
+    if (focusState.isActive) return; // Disable changing while active
+    stopFocus(); // Reset previous session if any (e.g. paused)
     setSelectedDuration(duration);
-    setTimeLeft(duration * 60);
-    setIsActive(false);
+    setDisplayTime(duration * 60); // Immediate update
     setShowCustomInput(false);
   };
 
   const handleCustomDurationSubmit = () => {
     const minutes = parseInt(customMinutes);
     if (!isNaN(minutes) && minutes > 0) {
+      if (focusState.isActive) return;
+      stopFocus();
       setSelectedDuration(minutes);
-      setTimeLeft(minutes * 60);
-      setIsActive(false);
+      setDisplayTime(minutes * 60);
       setShowCustomInput(false);
       setCustomMinutes('');
       Keyboard.dismiss();
@@ -63,7 +102,7 @@ const FocusScreen = () => {
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -74,7 +113,7 @@ const FocusScreen = () => {
 
         <View style={[styles.timerContainer, { borderColor: theme.colors.primary }]}>
           <Text style={[styles.timerText, { color: theme.colors.text }]}>
-            {formatTime(timeLeft)}
+            {formatTime(displayTime)}
           </Text>
         </View>
 
@@ -88,7 +127,7 @@ const FocusScreen = () => {
                 { borderColor: theme.colors.border, borderWidth: 1 }
               ]}
               onPress={() => handleDurationSelect(duration)}
-              disabled={isActive}
+              disabled={focusState.isActive}
             >
               <Text style={[
                 styles.durationText,
@@ -106,7 +145,7 @@ const FocusScreen = () => {
               { borderColor: theme.colors.border, borderWidth: 1 }
             ]}
             onPress={() => setShowCustomInput(!showCustomInput)}
-            disabled={isActive}
+            disabled={focusState.isActive}
           >
             <MoreHorizontal size={20} color={showCustomInput ? 'white' : theme.colors.text} />
           </TouchableOpacity>
@@ -138,7 +177,7 @@ const FocusScreen = () => {
             onPress={toggleTimer}
             style={[styles.controlButton, { backgroundColor: theme.colors.primary }]}
           >
-            {isActive ? (
+            {focusState.isActive ? (
               <Pause size={32} color="white" fill="white" />
             ) : (
               <Play size={32} color="white" fill="white" />
@@ -163,11 +202,11 @@ const FocusScreen = () => {
             <Text style={styles.adLabel}>Ad</Text>
           </View>
           <View style={styles.adContent}>
-            <Text style={[styles.adTitle, { color: theme.colors.text }]}>Focus Better with Pro</Text>
-            <Text style={[styles.adDesc, { color: theme.colors.textSecondary }]}>Remove distractions & ads</Text>
+            <Text style={[styles.adTitle, { color: theme.colors.text }]}>{t('unlockOnyxPro') || 'Unlock Onyx Pro'}</Text>
+            <Text style={[styles.adDesc, { color: theme.colors.textSecondary }]}>{t('removeAdsDesc')}</Text>
           </View>
           <View style={[styles.adButton, { backgroundColor: theme.colors.primary }]}>
-            <Text style={styles.adButtonText}>Upgrade</Text>
+            <Text style={styles.adButtonText}>{t('upgrade') || 'Upgrade'}</Text>
           </View>
         </TouchableOpacity>
       )}

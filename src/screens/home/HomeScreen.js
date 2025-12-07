@@ -1,720 +1,269 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Modal, Alert, Platform, SectionList, KeyboardAvoidingView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useHabits } from '../../context/HabitContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { Zap, Plus, Share2, Check, Briefcase, BookOpen, Brain, Dumbbell, Heart, Clock, Search, Filter, Edit2, X, Star, Trash2, Tag, ChevronLeft, ChevronRight } from 'lucide-react-native';
-import ConfettiCannon from 'react-native-confetti-cannon';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ChevronRight, CheckCircle, XCircle, AlertTriangle, TrendingUp, Calendar } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
 
 const HomeScreen = ({ navigation }) => {
   const theme = useTheme();
   const colors = theme?.colors || {};
   const { user, isPro } = useUser();
-  const { habits, addHabit, updateHabit, toggleHabit, deleteHabit, extraHabits } = useHabits();
-  const { t, language } = useLanguage();
+  const { habits, breakHabits, focusState, getFocusTimeLeft } = useHabits();
+  const { t } = useLanguage();
 
-  // Date State
-  const [selectedDate, setSelectedDate] = useState(new Date());
-
-  // Modal States
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
-  const [editingHabit, setEditingHabit] = useState(null);
-  const [congratsVisible, setCongratsVisible] = useState(false);
-  const [perfectScoreVisible, setPerfectScoreVisible] = useState(false);
-
-  // Form States
-  const [habitName, setHabitName] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('other');
-  const [reminderTime, setReminderTime] = useState(null);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
-
-  // Search & Filter States
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('all');
-
-  // Custom Categories
-  const [customCategories, setCustomCategories] = useState([]);
-
-  // Effects
-  const [showConfetti, setShowConfetti] = useState(false);
-
-  const defaultCategories = [
-    { id: 'other', icon: Zap, label: 'other', color: '#6366F1' },
-    { id: 'health', icon: Heart, label: 'health', color: '#EF4444' },
-    { id: 'work', icon: Briefcase, label: 'work', color: '#3B82F6' },
-    { id: 'learning', icon: BookOpen, label: 'learning', color: '#F59E0B' },
-    { id: 'mindfulness', icon: Brain, label: 'mindfulness', color: '#8B5CF6' },
-    { id: 'fitness', icon: Dumbbell, label: 'fitness', color: '#10B981' },
-  ];
-
-  const allCategories = [...defaultCategories, ...customCategories];
-
-  const today = new Date();
-  const selectedDateStr = selectedDate.toISOString().split('T')[0];
-
-  const localeMap = {
-    'English': 'en-US',
-    'Türkçe': 'tr-TR',
-    'Spanish': 'es-ES',
-    'German': 'de-DE',
-    'Italian': 'it-IT',
-    'Russian': 'ru-RU',
-    'Chinese': 'zh-CN'
-  };
-  const dateString = selectedDate.toLocaleDateString(localeMap[language] || 'en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-
-  const completedCount = (habits || []).filter(h => h.completedDates.includes(selectedDateStr)).length;
-  const progress = (habits || []).length > 0 ? completedCount / habits.length : 0;
+  const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
-    registerForPushNotificationsAsync();
-    scheduleDailyNotification();
-    loadCustomCategories();
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good Morning');
+    else if (hour < 18) setGreeting('Good Afternoon');
+    else setGreeting('Good Evening');
   }, []);
 
-  const changeDate = (days) => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + days);
-    setSelectedDate(newDate);
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Stats
+  const incompleteHabits = (habits || []).filter(h => !h.completedDates.includes(todayStr));
+  const completedHabits = (habits || []).filter(h => h.completedDates.includes(todayStr));
+  const completionRate = habits.length > 0 ? (completedHabits.length / habits.length) : 0;
+
+  // Break Streaks (Zincir Kırma)
+  const activeBreakHabits = breakHabits || [];
+
+  const getDaysSince = (lastBreakDate) => {
+    if (!lastBreakDate) return 0;
+    const today = new Date();
+    const lastBreak = new Date(lastBreakDate);
+    // Reset hours to compare dates only
+    today.setHours(0, 0, 0, 0);
+    lastBreak.setHours(0, 0, 0, 0);
+
+    const diffTime = Math.abs(today - lastBreak);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
-  const loadCustomCategories = async () => {
-    try {
-      const stored = await AsyncStorage.getItem('customCategories');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          const withIcons = parsed.map(c => ({ ...c, icon: Tag }));
-          setCustomCategories(withIcons);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load categories', e);
+  // Active Focus Timer
+  const [focusTimeLeft, setFocusTimeLeft] = useState(0);
+
+  useEffect(() => {
+    let interval;
+    if (focusState.elapsedSeconds > 0 || focusState.isActive) {
+      setFocusTimeLeft(getFocusTimeLeft());
+      interval = setInterval(() => {
+        setFocusTimeLeft(getFocusTimeLeft());
+      }, 1000);
     }
+    return () => clearInterval(interval);
+  }, [focusState, getFocusTimeLeft]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const saveCustomCategory = async () => {
-    if (newCategoryName.trim()) {
-      const newCat = {
-        id: `custom_${Date.now()}`,
-        label: newCategoryName,
-        color: '#' + Math.floor(Math.random() * 16777215).toString(16),
-        isCustom: true
-      };
-
-      const updated = [...customCategories, { ...newCat, icon: Tag }];
-      setCustomCategories(updated);
-
-      const toStore = updated.map(({ icon, ...rest }) => rest);
-      await AsyncStorage.setItem('customCategories', JSON.stringify(toStore));
-
-      setNewCategoryName('');
-      setIsCategoryModalVisible(false);
-      setSelectedCategory(newCat.id);
-    }
-  };
-
-  const registerForPushNotificationsAsync = async () => {
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F7C',
-      });
-    }
-
-    if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      if (finalStatus !== 'granted') {
-        return;
-      }
-    }
-  };
-
-  const scheduleDailyNotification = async () => {
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Good Morning! ☀️",
-        body: "Time to check your habits for today!",
-      },
-      trigger: {
-        hour: 9,
-        minute: 0,
-        repeats: true,
-      },
-    });
-  };
-
-  const handleSaveHabit = () => {
-    if (habitName.trim()) {
-      if (editingHabit) {
-        updateHabit(editingHabit.id, {
-          name: habitName,
-          category: selectedCategory,
-          reminderTime: reminderTime
-        });
-        closeModal();
-      } else {
-        const result = addHabit(habitName, selectedCategory, reminderTime);
-        if (result.success) {
-          closeModal();
-        } else if (result.error === 'limit_reached') {
-          closeModal();
-          navigation.navigate('Paywall', { trigger: 'habit_limit' });
-        }
-      }
-    }
-  };
-
-  const handleDeleteHabit = () => {
-    if (editingHabit) {
-      Alert.alert(
-        t('confirmDelete'),
-        t('deletePrompt'),
-        [
-          { text: t('cancel'), style: 'cancel' },
-          {
-            text: t('delete'),
-            style: 'destructive',
-            onPress: () => {
-              deleteHabit(editingHabit.id);
-              closeModal();
-            }
-          }
-        ]
+  const renderActiveFocus = () => {
+    if (focusState.sessionCompleted) {
+      return (
+        <TouchableOpacity
+          style={[styles.section, { backgroundColor: colors.surface, borderColor: '#10B981', borderWidth: 2 }]}
+          onPress={() => navigation.navigate('Focus')}
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View>
+              <Text style={[styles.sectionTitle, { color: '#10B981', fontSize: 16 }]}>
+                {t('focusComplete')}
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{t('tapToManage')}</Text>
+            </View>
+            <CheckCircle size={32} color="#10B981" />
+          </View>
+        </TouchableOpacity>
       );
     }
+
+    if (focusState.elapsedSeconds === 0 && !focusState.isActive) return null;
+
+    return (
+      <TouchableOpacity
+        style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: 2 }]}
+        onPress={() => navigation.navigate('Focus')}
+      >
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.primary, fontSize: 16 }]}>
+              {focusState.isActive ? t('focusing') : t('focusPaused')}
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{t('tapToManage')}</Text>
+          </View>
+          <Text style={{ fontSize: 32, fontWeight: 'bold', fontVariant: ['tabular-nums'], color: colors.text }}>
+            {formatTime(focusTimeLeft)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
-  const openModal = (habit = null) => {
-    if (habit) {
-      setEditingHabit(habit);
-      setHabitName(habit.name);
-      setSelectedCategory(habit.category || 'other');
-      setReminderTime(habit.reminderTime);
-    } else {
-      if (!isPro && habits.length >= (5 + (extraHabits || 0))) {
-        navigation.navigate('Paywall', { trigger: 'habit_limit' });
-        return;
-      }
-      setEditingHabit(null);
-      setHabitName('');
-      setSelectedCategory('other');
-      setReminderTime(null);
-    }
-    setIsModalVisible(true);
-  };
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View>
+        <Text style={[styles.greetingSub, { color: colors.textSecondary }]}>{t('welcome')}</Text>
+        <Text style={[styles.greetingTitle, { color: colors.text }]}>{user?.name || 'Guest'}</Text>
+      </View>
+      <TouchableOpacity onPress={() => navigation.navigate('Paywall')}>
+        {!isPro && (
+          <LinearGradient
+            colors={[colors.primary, colors.secondary]}
+            style={styles.proBadge}
+          >
+            <Text style={styles.proBadgeText}>PRO</Text>
+          </LinearGradient>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
 
-  const closeModal = () => {
-    setIsModalVisible(false);
-    setEditingHabit(null);
-    setHabitName('');
-    setSelectedCategory('other');
-    setReminderTime(null);
-  };
+  const renderShortReport = () => (
+    <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('shortReport')}</Text>
+        <TrendingUp size={20} color={colors.primary} />
+      </View>
 
-  const handleToggleHabit = (id) => {
-    const habit = habits.find(h => h.id === id);
-    const isCompleted = habit.completedDates.includes(selectedDateStr);
+      <View style={styles.reportContent}>
+        <View style={styles.reportItem}>
+          <Text style={[styles.reportValue, { color: colors.primary }]}>{Math.round(completionRate * 100)}%</Text>
+          <Text style={[styles.reportLabel, { color: colors.textSecondary }]}>{t('dailyGoals')}</Text>
+        </View>
 
-    toggleHabit(id, selectedDateStr);
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-    if (!isCompleted) {
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 3000);
+        <View style={styles.reportItem}>
+          <Text style={[styles.reportValue, { color: '#10B981' }]}>{completedHabits.length}</Text>
+          <Text style={[styles.reportLabel, { color: colors.textSecondary }]}>{t('success')}</Text>
+        </View>
 
-      const newCompletedCount = completedCount + 1;
-      const newProgress = newCompletedCount / habits.length;
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-      if (newProgress === 1) {
-        setPerfectScoreVisible(true);
-        setCongratsVisible(false);
-      } else if (newProgress >= 0.8 && progress < 0.8) {
-        setCongratsVisible(true);
-      }
-    }
-  };
+        <View style={styles.reportItem}>
+          <Text style={[styles.reportValue, { color: '#EF4444' }]}>{incompleteHabits.length}</Text>
+          <Text style={[styles.reportLabel, { color: colors.textSecondary }]}>{t('incompleteHabits')}</Text>
+        </View>
+      </View>
 
-  const onTimeChange = (event, selectedDate) => {
-    setShowTimePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setReminderTime(selectedDate.toISOString());
-    }
-  };
+      <View style={[styles.progressBarBg, { backgroundColor: colors.background }]}>
+        <LinearGradient
+          colors={[colors.primary, colors.secondary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[styles.progressBarFill, { width: `${completionRate * 100}%` }]}
+        />
+      </View>
+    </View>
+  );
 
-  const formatTime = (isoString) => {
-    if (!isoString) return '';
-    const date = new Date(isoString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  const renderIncompleteHabits = () => (
+    <View style={styles.sectionContainer}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={[styles.sectionHeading, { color: colors.text }]}>{t('incompleteHabits')}</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Habits')}>
+          <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('viewAll')}</Text>
+        </TouchableOpacity>
+      </View>
 
-  const getCategoryIcon = (catId) => {
-    const cat = allCategories.find(c => c.id === catId) || defaultCategories[0];
-    return cat.icon;
-  };
+      {incompleteHabits.length === 0 ? (
+        <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <CheckCircle size={40} color="#10B981" />
+          <Text style={[styles.emptyText, { color: colors.text }]}>{t('perfectScoreMsg')}</Text>
+        </View>
+      ) : (
+        incompleteHabits.slice(0, 3).map((habit, index) => (
+          <TouchableOpacity
+            key={habit.id}
+            style={[styles.miniHabitCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => navigation.navigate('Habits')}
+          >
+            <View style={[styles.dot, { backgroundColor: '#EF4444' }]} />
+            <Text style={[styles.miniHabitText, { color: colors.text }]}>{habit.name}</Text>
+            <ChevronRight size={16} color={colors.textSecondary} />
+          </TouchableOpacity>
+        ))
+      )}
+    </View>
+  );
 
-  const getCategoryColor = (catId) => {
-    const cat = allCategories.find(c => c.id === catId) || defaultCategories[0];
-    return cat.color;
-  };
+  const renderBreakStreaks = () => (
+    <View style={styles.sectionContainer}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={[styles.sectionHeading, { color: colors.text }]}>{t('breakStreakTodos')}</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('BreakStreak')}>
+          <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('viewAll')}</Text>
+        </TouchableOpacity>
+      </View>
 
-  const getCategoryLabel = (cat) => {
-    return cat.isCustom ? cat.label : t(cat.label);
-  };
-
-  // Filtering and Grouping
-  const filteredHabits = (habits || []).filter(h => {
-    const matchesSearch = h.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = activeFilter === 'all' || h.category === activeFilter;
-    return matchesSearch && matchesCategory;
-  });
-
-  const groupedHabits = allCategories.reduce((acc, cat) => {
-    const catHabits = filteredHabits.filter(h => (h.category || 'other') === cat.id);
-    if (catHabits.length > 0) {
-      acc.push({
-        title: cat.id,
-        data: catHabits,
-        color: cat.color,
-        label: getCategoryLabel(cat)
-      });
-    }
-    return acc;
-  }, []);
+      {activeBreakHabits.length === 0 ? (
+        <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('noBreakHabits')}</Text>
+        </View>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginLeft: -4 }}>
+          {activeBreakHabits.map(habit => {
+            const daysClean = getDaysSince(habit.lastBreakDate);
+            return (
+              <TouchableOpacity
+                key={habit.id}
+                style={[styles.breakCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={() => navigation.navigate('BreakStreak')}
+              >
+                <Text style={[styles.breakCardTitle, { color: colors.text }]} numberOfLines={1}>{habit.name}</Text>
+                <View style={styles.breakCardStat}>
+                  <Text style={[styles.breakCardValue, { color: colors.primary }]}>{daysClean}</Text>
+                  <Text style={[styles.breakCardLabel, { color: colors.textSecondary }]}>{t('streakDays')}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
+    </View>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {showConfetti && (
-        <ConfettiCannon
-          count={200}
-          origin={{ x: -10, y: 0 }}
-          autoStart={true}
-          fadeOut={true}
-        />
-      )}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {renderHeader()}
+        {renderActiveFocus()}
+        {renderShortReport()}
+        {renderIncompleteHabits()}
+        {renderBreakStreaks()}
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={[styles.greeting, { color: colors.textSecondary }]}>{t('welcome')}</Text>
-          <Text style={[styles.username, { color: colors.text }]}>{user?.name || 'Guest'}</Text>
-        </View>
-        {!isPro && (
-          <TouchableOpacity onPress={() => navigation.navigate('Paywall')}>
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              style={styles.proBadge}
-            >
-              <Text style={styles.proBadgeText}>{t('proBadge')}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-      </View>
+        {/* Banner Ad Space at Bottom of Scroll if needed, but keeping it fixed usually better */}
+        <View style={{ height: 80 }} />
+      </ScrollView>
 
-      {/* Date Navigation */}
-      <View style={styles.dateNav}>
-        <TouchableOpacity onPress={() => changeDate(-1)} style={styles.navButton}>
-          <ChevronLeft size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.date, { color: colors.textSecondary, marginBottom: 0 }]}>{dateString}</Text>
-        <TouchableOpacity onPress={() => changeDate(1)} style={styles.navButton}>
-          <ChevronRight size={24} color={colors.text} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Progress Bar */}
-      <View style={styles.progressContainer}>
-        <View style={[styles.progressBarBg, { backgroundColor: colors.surface }]}>
-          <LinearGradient
-            colors={[colors.primary, colors.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.progressBarFill, { width: `${progress * 100}%` }]}
-          />
-        </View>
-        <Text style={[styles.progressText, { color: colors.textSecondary }]}>
-          {Math.round(progress * 100)}% {t('dailyGoals')}
-        </Text>
-      </View>
-
-      {/* Search and Filter */}
-      <View style={styles.searchContainer}>
-        <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Search size={20} color={colors.textSecondary} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder={t('search')}
-            placeholderTextColor={colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          <TouchableOpacity
-            style={[
-              styles.filterChip,
-              {
-                backgroundColor: activeFilter === 'all' ? colors.primary : colors.surface,
-                borderColor: colors.border
-              }
-            ]}
-            onPress={() => setActiveFilter('all')}
-          >
-            <Text style={[styles.filterText, { color: activeFilter === 'all' ? 'white' : colors.text }]}>{t('all')}</Text>
-          </TouchableOpacity>
-          {allCategories.map(cat => (
-            <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.filterChip,
-                {
-                  backgroundColor: activeFilter === cat.id ? cat.color : colors.surface,
-                  borderColor: colors.border
-                }
-              ]}
-              onPress={() => setActiveFilter(cat.id)}
-            >
-              <Text style={[styles.filterText, { color: activeFilter === cat.id ? 'white' : colors.text }]}>
-                {getCategoryLabel(cat)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Habits List */}
-      <SectionList
-        sections={groupedHabits}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.habitsList}
-        renderSectionHeader={({ section: { label, color } }) => (
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: color }]}>{label}</Text>
-            <View style={[styles.sectionLine, { backgroundColor: color, opacity: 0.3 }]} />
-          </View>
-        )}
-        renderItem={({ item }) => {
-          const isCompleted = item.completedDates.includes(selectedDateStr);
-          const Icon = getCategoryIcon(item.category);
-          const iconColor = getCategoryColor(item.category);
-
-          return (
-            <View style={[styles.habitCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <View style={styles.habitInfo}>
-                <View style={[styles.iconBox, { backgroundColor: isCompleted ? iconColor : colors.background }]}>
-                  <Icon size={20} color={isCompleted ? 'white' : iconColor} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.habitName, { color: colors.text, textDecorationLine: isCompleted ? 'line-through' : 'none' }]}>
-                    {item.name}
-                  </Text>
-                  <View style={styles.metaRow}>
-                    <Text style={[styles.streakText, { color: colors.textSecondary }]}>
-                      {item.streak} {t('streak')}
-                    </Text>
-                    {(() => {
-                      const yesterday = new Date();
-                      yesterday.setDate(yesterday.getDate() - 1);
-                      const yesterdayStr = yesterday.toISOString().split('T')[0];
-                      const isYesterdayCompleted = item.completedDates.includes(yesterdayStr);
-                      const isTodayCompleted = item.completedDates.includes(today.toISOString().split('T')[0]);
-
-                      // Only show repair if yesterday is missed AND streak > 0 (or was > 0)
-                      // Simplified: If yesterday missed, show repair.
-                      if (!isYesterdayCompleted && !isPro) {
-                        return (
-                          <TouchableOpacity
-                            onPress={() => navigation.navigate('Paywall', { trigger: 'streak_repair', habitId: item.id })}
-                            style={styles.repairButton}
-                          >
-                            <Text style={styles.repairText}>Repair</Text>
-                          </TouchableOpacity>
-                        );
-                      }
-                      return null;
-                    })()}
-                    {item.reminderTime && (
-                      <View style={styles.timeTag}>
-                        <Clock size={10} color={colors.textSecondary} />
-                        <Text style={[styles.timeText, { color: colors.textSecondary }]}>
-                          {formatTime(item.reminderTime)}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.actions}>
-                <TouchableOpacity onPress={() => openModal(item)} style={styles.actionButton}>
-                  <Edit2 size={18} color={colors.textSecondary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('SocialShare', {
-                    habit: item,
-                    color: iconColor,
-                    categoryIcon: item.category // We'll handle icon mapping in SocialShare or pass the icon name if possible, but passing ID is safer for serialization
-                  })}
-                  style={styles.actionButton}
-                >
-                  <Share2 size={18} color={colors.textSecondary} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleToggleHabit(item.id)} style={[styles.checkbox, { borderColor: iconColor, backgroundColor: isCompleted ? iconColor : 'transparent' }]}>
-                  {isCompleted && <Check size={16} color="white" />}
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        }}
-      />
-
-      {/* Add Button */}
-      <TouchableOpacity
-        style={[styles.addButton, { backgroundColor: colors.primary }]}
-        onPress={() => openModal()}
-      >
-        <Plus size={32} color="white" />
-      </TouchableOpacity>
-
-      {/* Add/Edit Habit Modal */}
-      <Modal
-        visible={isModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={closeModal}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1 }}
+      {/* Banner Ad */}
+      {!isPro && (
+        <TouchableOpacity
+          style={[styles.bannerAd, { backgroundColor: colors.surface, borderTopColor: colors.border }]}
+          onPress={() => navigation.navigate('Paywall')}
         >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-              <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>
-                  {editingHabit ? t('editHabit') || 'Edit Habit' : t('newHabit')}
-                </Text>
-                {editingHabit && (
-                  <TouchableOpacity onPress={handleDeleteHabit} style={styles.deleteButton}>
-                    <Trash2 size={20} color="#EF4444" />
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <TextInput
-                style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-                placeholder={t('habitNamePlaceholder')}
-                placeholderTextColor={colors.textSecondary}
-                value={habitName}
-                onChangeText={setHabitName}
-                autoFocus={!editingHabit}
-              />
-
-              <View style={styles.categoryHeader}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>{t('category')}</Text>
-                <TouchableOpacity onPress={() => setIsCategoryModalVisible(true)}>
-                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: 'bold' }}>+ {t('addCategory')}</Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryList}>
-                {allCategories.map(cat => {
-                  const Icon = cat.icon;
-                  const isSelected = selectedCategory === cat.id;
-                  return (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[
-                        styles.categoryItem,
-                        {
-                          backgroundColor: isSelected ? cat.color : colors.surface,
-                          borderColor: isSelected ? cat.color : colors.border
-                        }
-                      ]}
-                      onPress={() => setSelectedCategory(cat.id)}
-                    >
-                      <Icon size={20} color={isSelected ? 'white' : colors.text} />
-                      <Text style={[styles.categoryLabel, { color: isSelected ? 'white' : colors.text }]}>
-                        {getCategoryLabel(cat)}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
-              <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16 }]}>{t('time')}</Text>
-              <TouchableOpacity
-                style={[styles.timeButton, { borderColor: colors.primary, backgroundColor: colors.surface }]}
-                onPress={() => setShowTimePicker(true)}
-              >
-                <LinearGradient
-                  colors={[colors.primary, colors.secondary]}
-                  style={styles.timeIconContainer}
-                >
-                  <Clock size={20} color="white" />
-                </LinearGradient>
-                <Text style={[styles.timeButtonText, { color: colors.text }]}>
-                  {reminderTime ? formatTime(reminderTime) : t('setReminder')}
-                </Text>
-              </TouchableOpacity>
-
-              {showTimePicker && (
-                <DateTimePicker
-                  value={reminderTime ? new Date(reminderTime) : new Date()}
-                  mode="time"
-                  is24Hour={true}
-                  display="default"
-                  onChange={onTimeChange}
-                />
-              )}
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity onPress={closeModal} style={styles.modalButton}>
-                  <Text style={{ color: colors.textSecondary }}>{t('cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleSaveHabit} style={[styles.modalButton, { backgroundColor: colors.primary }]}>
-                  <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                    {editingHabit ? t('save') || 'Save' : t('create')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+          <View style={styles.adLabelContainer}>
+            <Text style={styles.adLabel}>Ad</Text>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Add Category Modal */}
-      <Modal
-        visible={isCategoryModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsCategoryModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('createCategory')}</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-              placeholder={t('categoryName')}
-              placeholderTextColor={colors.textSecondary}
-              value={newCategoryName}
-              onChangeText={setNewCategoryName}
-              autoFocus
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity onPress={() => setIsCategoryModalVisible(false)} style={styles.modalButton}>
-                <Text style={{ color: colors.textSecondary }}>{t('cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={saveCustomCategory} style={[styles.modalButton, { backgroundColor: colors.primary }]}>
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>{t('create')}</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={styles.adContent}>
+            <Text style={[styles.adTitle, { color: colors.text }]}>{t('unlockOnyxPro') || 'Unlock Onyx Pro'}</Text>
+            <Text style={[styles.adDesc, { color: colors.textSecondary }]}>{t('removeAdsDesc')}</Text>
           </View>
-        </View>
-      </Modal>
-
-      {/* Congrats Modal (80%) */}
-      <Modal
-        visible={congratsVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setCongratsVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.congratsContent, { backgroundColor: colors.card }]}>
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              style={styles.congratsIconContainer}
-            >
-              <Star size={48} color="white" fill="white" />
-            </LinearGradient>
-            <Text style={[styles.congratsTitle, { color: colors.text }]}>{t('greatJob')}</Text>
-            <Text style={[styles.congratsText, { color: colors.textSecondary }]}>
-              {t('dailyGoalReached')}
-            </Text>
-            <TouchableOpacity
-              style={[styles.congratsButton, { backgroundColor: colors.primary }]}
-              onPress={() => setCongratsVisible(false)}
-            >
-              <Text style={styles.congratsButtonText}>{t('awesome')}</Text>
-            </TouchableOpacity>
+          <View style={[styles.adButton, { backgroundColor: colors.primary }]}>
+            <Text style={styles.adButtonText}>{t('upgrade') || 'Upgrade'}</Text>
           </View>
-        </View>
-      </Modal>
-
-      {/* Perfect Score Modal (100%) */}
-      <Modal
-        visible={perfectScoreVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPerfectScoreVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.congratsContent, { backgroundColor: colors.card, borderWidth: 2, borderColor: '#FFD700' }]}>
-            <ConfettiCannon count={100} origin={{ x: 0, y: 0 }} autoStart={true} fadeOut={true} />
-            <LinearGradient
-              colors={['#FFD700', '#FFA500']}
-              style={styles.congratsIconContainer}
-            >
-              <Star size={48} color="white" fill="white" />
-            </LinearGradient>
-            <Text style={[styles.congratsTitle, { color: colors.text }]}>{t('perfectScore')}</Text>
-            <Text style={[styles.congratsText, { color: colors.textSecondary }]}>
-              {t('perfectScoreMsg')}
-            </Text>
-            <TouchableOpacity
-              style={[styles.congratsButton, { backgroundColor: '#FFD700' }]}
-              onPress={() => setPerfectScoreVisible(false)}
-            >
-              <Text style={[styles.congratsButtonText, { color: 'black' }]}>{t('awesome')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {
-        !isPro && (
-          <TouchableOpacity
-            style={[styles.bannerAd, { backgroundColor: colors.surface, borderTopColor: colors.border }]}
-            onPress={() => navigation.navigate('Paywall')}
-          >
-            <View style={styles.adLabelContainer}>
-              <Text style={styles.adLabel}>Ad</Text>
-            </View>
-            <View style={styles.adContent}>
-              <Text style={[styles.adTitle, { color: colors.text }]}>{t('unlockOnyxPro') || 'Unlock Onyx Pro'}</Text>
-              <Text style={[styles.adDesc, { color: colors.textSecondary }]}>{t('removeAdsDesc') || 'Remove ads & get unlimited habits'}</Text>
-            </View>
-            <View style={[styles.adButton, { backgroundColor: colors.primary }]}>
-              <Text style={styles.adButtonText}>{t('upgrade') || 'Upgrade'}</Text>
-            </View>
-          </TouchableOpacity>
-        )
-      }
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -722,6 +271,8 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
     padding: 20,
     paddingTop: 60,
   },
@@ -729,70 +280,142 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 24,
   },
-  greeting: { fontSize: 14 },
-  username: { fontSize: 24, fontWeight: 'bold' },
+  greetingSub: { fontSize: 14 },
+  greetingTitle: { fontSize: 24, fontWeight: 'bold' },
   proBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   proBadgeText: { color: 'white', fontWeight: 'bold', fontSize: 12 },
-  date: { fontSize: 14, marginBottom: 24, textTransform: 'uppercase', letterSpacing: 1 },
-  progressContainer: { marginBottom: 24 },
-  progressBarBg: { height: 8, borderRadius: 4, marginBottom: 8, overflow: 'hidden' },
-  progressBarFill: { height: '100%', borderRadius: 4 },
-  progressText: { fontSize: 12, textAlign: 'right' },
 
-  // Search & Filter
-  searchContainer: { marginBottom: 20 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, marginBottom: 12, height: 48 },
-  searchInput: { flex: 1, marginLeft: 8, fontSize: 16 },
-  filterScroll: { flexDirection: 'row' },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginRight: 8 },
-  filterText: { fontSize: 12, fontWeight: '600' },
+  // Section Box
+  section: {
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  reportContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  reportItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  reportValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  reportLabel: {
+    fontSize: 10,
+    textTransform: 'uppercase',
+  },
+  divider: {
+    width: 1,
+    height: 30,
+  },
+  progressBarBg: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
 
-  // List
-  habitsList: { paddingBottom: 100 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginTop: 16, marginBottom: 8 },
-  sectionTitle: { fontSize: 14, fontWeight: 'bold', marginRight: 8, textTransform: 'uppercase' },
-  sectionLine: { flex: 1, height: 1, borderRadius: 1 },
-  habitCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1 },
-  habitInfo: { flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 },
-  iconBox: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  habitName: { fontSize: 16, fontWeight: '600' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
-  streakText: { fontSize: 12 },
-  timeTag: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  timeText: { fontSize: 12 },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  actionButton: { padding: 8 },
-  checkbox: { width: 28, height: 28, borderRadius: 8, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
-  addButton: { position: 'absolute', bottom: 90, right: 20, width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.30, shadowRadius: 4.65, elevation: 8 },
+  // Section Headers
+  sectionContainer: {
+    marginBottom: 24,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionHeading: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
 
-  // Modals
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modalContent: { padding: 24, borderRadius: 24, width: '90%', maxHeight: '80%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold' },
-  deleteButton: { padding: 8 },
-  input: { padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 16, fontSize: 16 },
-  categoryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
-  categoryList: { flexDirection: 'row', marginBottom: 8, maxHeight: 50 },
-  categoryItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginRight: 8, borderWidth: 1, gap: 6 },
-  categoryLabel: { fontSize: 12, fontWeight: '600' },
-  timeButton: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 1, gap: 12, marginBottom: 24 },
-  timeIconContainer: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  timeButtonText: { fontSize: 16, fontWeight: '600' },
-  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16 },
-  modalButton: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 },
+  // Mini Habit Card
+  miniHabitCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  miniHabitText: {
+    fontSize: 16,
+    flex: 1,
+    fontWeight: '500',
+  },
 
-  // Congrats Modal
-  congratsContent: { padding: 32, borderRadius: 24, alignItems: 'center' },
-  congratsIconContainer: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 24, elevation: 10 },
-  congratsTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' },
-  congratsText: { fontSize: 16, textAlign: 'center', marginBottom: 32, lineHeight: 24 },
-  congratsButton: { paddingVertical: 16, paddingHorizontal: 48, borderRadius: 16, elevation: 4 },
-  congratsButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  // Empty State
+  emptyCard: {
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderStyle: 'dashed',
+  },
+  emptyText: {
+    marginTop: 8,
+    fontSize: 14,
+    textAlign: 'center',
+  },
 
+  // Break Streak Card
+  breakCard: {
+    width: 140,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginRight: 12,
+    marginLeft: 4,
+  },
+  breakCardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  breakCardStat: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  breakCardValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  breakCardLabel: {
+    fontSize: 12,
+  },
+
+  // Banner
   bannerAd: {
     position: 'absolute',
     bottom: 0,
@@ -840,28 +463,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  repairButton: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 8,
-  },
-  repairText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  dateNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 10,
-  },
-  navButton: {
-    padding: 8,
-  }
 });
 
 export default HomeScreen;

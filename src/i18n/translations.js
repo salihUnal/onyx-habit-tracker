@@ -115,9 +115,17 @@ export const translations = {
     restorePurchase: 'Restore Purchase',
     // Banner Ad
     unlockOnyxPro: 'Unlock Onyx Pro',
-    removeAdsDesc: 'Remove ads & get unlimited habits',
+    removeAdsDesc: 'Remove ads, distractions & unlock Chain Breaking',
     upgrade: 'Upgrade',
     adRewardEarned: 'Reward Earned! You have 1 hour to add a new habit.',
+    // Dashboard & Focus Ad
+    dashboard: 'Dashboard',
+    incompleteHabits: 'Incomplete Habits',
+    breakStreakTodos: 'Break Streak Todos',
+    shortReport: 'Short Report',
+    viewAll: 'View All',
+    focusBetter: 'Focus Better with Pro',
+    focusAdDesc: 'Remove distractions, ads & unlock Chain Breaking',
     // Break Streaks
     breakStreaks: 'Break Streaks',
     breakStreaksDesc: 'Track bad habits you\'re breaking',
@@ -132,7 +140,11 @@ export const translations = {
     confirmBreakMessage: 'Did you do this bad habit today?',
     yes: 'Yes',
     addBreakHabit: 'Add Bad Habit',
-    editHabit: 'Düzenle',
+    addBreakHabit: 'Add Bad Habit',
+    editHabit: 'Edit',
+    focusing: 'Focusing...',
+    focusPaused: 'Focus Paused',
+    tapToManage: 'Tap to manage',
   },
   Türkçe: {
     welcome: 'Tekrar hoş geldin,',
@@ -250,9 +262,17 @@ export const translations = {
     restorePurchase: 'Satın Alımı Geri Yükle',
     // Banner Ad
     unlockOnyxPro: 'Onyx Pro\'yu Aç',
-    removeAdsDesc: 'Reklamları kaldır & sınırsız alışkanlık kazan',
+    removeAdsDesc: 'Reklamları kaldır, dikkat dağıtıcıları önle & Zincir Kırmayı aç',
     upgrade: 'Yükselt',
     adRewardEarned: 'Ödül Kazanıldı! Yeni alışkanlık eklemek için 1 saatin var.',
+    // Dashboard & Focus Ad
+    dashboard: 'Panel',
+    incompleteHabits: 'Tamamlanmamış Alışkanlıklar',
+    breakStreakTodos: 'Zincir Kırma Todoları',
+    shortReport: 'Kısa Rapor',
+    viewAll: 'Tümünü Gör',
+    focusBetter: 'Pro ile Daha İyi Odaklan',
+    focusAdDesc: 'Dikkat dağıtıcıları, reklamları kaldır & Zincir Kırmayı aç',
     // Break Streaks
     breakStreaks: 'Zincir Kırma',
     breakStreaksDesc: 'Bırakmaya çalıştığın kötü alışkanlıkları takip et',
@@ -270,6 +290,10 @@ export const translations = {
     editHabit: 'Düzenle',
     streakRepaired: 'Seri Onarıldı!',
     watchAdToRepair: 'Reklam İzleyerek Onar',
+    watchAdToRepair: 'Reklam İzleyerek Onar',
+    focusing: 'Odaklanılıyor...',
+    focusPaused: 'Odaklanma Duraklatıldı',
+    tapToManage: 'Yönetmek için dokun',
   },
   Spanish: {
     welcome: 'Willkommen zurück,',
@@ -376,8 +400,19 @@ export const translations = {
     createCategory: 'Kategorie Erstellen',
     // Banner Ad
     unlockOnyxPro: 'Onyx Pro Freischalten',
-    removeAdsDesc: 'Werbung entfernen & unbegrenzte Gewohnheiten',
+    removeAdsDesc: 'Werbung entfernen, Ablenkungen vermeiden & Kettenbrechen freischalten',
     upgrade: 'Upgrade',
+    // Dashboard & Focus Ad
+    dashboard: 'Dashboard',
+    incompleteHabits: 'Incomplete Habits',
+    breakStreakTodos: 'Break Streak Todos',
+    shortReport: 'Short Report',
+    viewAll: 'View All',
+    focusBetter: 'Focus Better with Pro',
+    focusAdDesc: 'Remove distractions, ads & unlock Chain Breaking',
+    focusing: 'Fokussiert...',
+    focusPaused: 'Fokus Pausiert',
+    tapToManage: 'Tippen zum Verwalten',
   },
   Italian: {
     welcome: 'Bentornato,',
@@ -484,8 +519,19 @@ export const translations = {
     createCategory: 'Crea Categoria',
     // Banner Ad
     unlockOnyxPro: 'Sblocca Onyx Pro',
-    removeAdsDesc: 'Rimuovi pubblicità e abitudini illimitate',
+    removeAdsDesc: 'Rimuovi pubblicità, distrazioni e sblocca la rottura della catena',
     upgrade: 'Aggiorna',
+    // Dashboard & Focus Ad
+    dashboard: 'Dashboard',
+    incompleteHabits: 'Incomplete Habits',
+    breakStreakTodos: 'Break Streak Todos',
+    shortReport: 'Short Report',
+    viewAll: 'View All',
+    focusBetter: 'Focus Better with Pro',
+    focusAdDesc: 'Remove distractions, ads & unlock Chain Breaking',
+    focusing: 'Focalizzazione...',
+    focusPaused: 'Focus in Pausa',
+    tapToManage: 'Tocca per gestire',
   },
   Russian: {
     welcome: 'С возвращением,',
@@ -592,8 +638,19 @@ export const translations = {
     createCategory: 'Создать категорию',
     // Banner Ad
     unlockOnyxPro: 'Разблокировать Onyx Pro',
-    removeAdsDesc: 'Убрать рекламу и безлимитные привычки',
+    removeAdsDesc: 'Убрать рекламу, отвлекающие факторы и разблокировать разрыв цепи',
     upgrade: 'Обновить',
+    // Dashboard & Focus Ad
+    dashboard: 'Dashboard',
+    incompleteHabits: 'Incomplete Habits',
+    breakStreakTodos: 'Break Streak Todos',
+    shortReport: 'Short Report',
+    viewAll: 'View All',
+    focusBetter: 'Focus Better with Pro',
+    focusAdDesc: 'Remove distractions, ads & unlock Chain Breaking',
+    focusing: 'Фокусировка...',
+    focusPaused: 'Фокус на паузе',
+    tapToManage: 'Нажмите для управления',
   },
   Chinese: {
     welcome: '欢迎回来，',
@@ -700,7 +757,18 @@ export const translations = {
     createCategory: '创建类别',
     // Banner Ad
     unlockOnyxPro: '解锁 Onyx Pro',
-    removeAdsDesc: '移除广告并获得无限习惯',
+    removeAdsDesc: '移除广告、干扰并解锁打破链条功能',
     upgrade: '升级',
+    // Dashboard & Focus Ad
+    dashboard: 'Dashboard',
+    incompleteHabits: 'Incomplete Habits',
+    breakStreakTodos: 'Break Streak Todos',
+    shortReport: 'Short Report',
+    viewAll: 'View All',
+    focusBetter: 'Focus Better with Pro',
+    focusAdDesc: 'Remove distractions, ads & unlock Chain Breaking',
+    focusing: '专注中...',
+    focusPaused: '专注暂停',
+    tapToManage: '点击管理',
   }
 };

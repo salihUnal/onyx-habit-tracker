@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Modal, Alert } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useHabits } from '../../context/HabitContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Unlink, Plus, Trash2, TrendingDown, Award, Calendar } from 'lucide-react-native';
@@ -11,12 +12,18 @@ const BreakStreakScreen = ({ navigation }) => {
     const theme = useTheme();
     const colors = theme?.colors || {};
     const { isPro } = useUser();
+    const { t } = useLanguage();
     const { breakHabits, addBreakHabit, toggleBreakHabit, deleteBreakHabit, extraHabits } = useHabits();
 
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [habitName, setHabitName] = useState('');
     const [editingHabit, setEditingHabit] = useState(null);
     const [showConfetti, setShowConfetti] = useState(false);
+
+    // Confirmation Modal State
+    const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+    const [pendingBreakId, setPendingBreakId] = useState(null);
+    const [confirmType, setConfirmType] = useState('break'); // 'break' | 'delete'
 
     const openModal = (habit = null) => {
         if (habit) {
@@ -25,7 +32,8 @@ const BreakStreakScreen = ({ navigation }) => {
             setIsModalVisible(true);
         } else {
             // Check limit including extraHabits (same as HomeScreen)
-            if (!isPro && (breakHabits || []).length >= (3 + (extraHabits || 0))) {
+            const currentExtra = extraHabits || 0;
+            if (!isPro && (breakHabits || []).length >= 3 && currentExtra <= 0) {
                 navigation.navigate('Paywall', { trigger: 'break_habit_limit' });
                 return;
             }
@@ -59,21 +67,12 @@ const BreakStreakScreen = ({ navigation }) => {
 
     const handleDelete = () => {
         if (editingHabit) {
-            Alert.alert(
-                'Sil',
-                'Emin misin?',
-                [
-                    { text: 'İptal', style: 'cancel' },
-                    {
-                        text: 'Sil',
-                        style: 'destructive',
-                        onPress: () => {
-                            deleteBreakHabit(editingHabit.id);
-                            closeModal();
-                        }
-                    }
-                ]
-            );
+            setPendingBreakId(editingHabit.id);
+            setConfirmType('delete');
+            setIsConfirmModalVisible(true);
+            // We keep the edit modal open in background or we could close it.
+            // If we close it, editingHabit becomes null.
+            // Let's close it after confirmation.
         }
     };
 
@@ -87,6 +86,10 @@ const BreakStreakScreen = ({ navigation }) => {
         if (!lastBreakDate) return 0;
         const today = new Date();
         const lastBreak = new Date(lastBreakDate);
+        // Reset hours to compare dates only
+        today.setHours(0, 0, 0, 0);
+        lastBreak.setHours(0, 0, 0, 0);
+
         const diffTime = Math.abs(today - lastBreak);
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         return diffDays;
@@ -107,10 +110,10 @@ const BreakStreakScreen = ({ navigation }) => {
             <View style={styles.header}>
                 <View>
                     <Text style={[styles.title, { color: colors.text }]}>
-                        Zincir Kırma
+                        {t('breakStreaks') || 'Break Streaks'}
                     </Text>
                     <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                        Bırakmak istediğin kötü alışkanlıkları takip et
+                        {t('breakStreaksDesc') || 'Track bad habits'}
                     </Text>
                 </View>
                 {!isPro && (
@@ -119,7 +122,7 @@ const BreakStreakScreen = ({ navigation }) => {
                             colors={[colors.primary, colors.secondary]}
                             style={styles.proBadge}
                         >
-                            <Text style={styles.proBadgeText}>PRO</Text>
+                            <Text style={styles.proBadgeText}>{t('proBadge') || 'PRO'}</Text>
                         </LinearGradient>
                     </TouchableOpacity>
                 )}
@@ -130,10 +133,10 @@ const BreakStreakScreen = ({ navigation }) => {
                 <TrendingDown size={24} color={colors.primary} />
                 <View style={styles.infoTextContainer}>
                     <Text style={[styles.infoTitle, { color: colors.text }]}>
-                        Nasıl çalışır?
+                        {t('howItWorks') || 'How it works'}
                     </Text>
                     <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                        Bırakmak istediğin kötü alışkanlıkları ekle. Onları yapmadığın her gün temiz kalma serini artırır!
+                        {t('breakStreaksInfo') || 'Add bad habits to break them.'}
                     </Text>
                 </View>
             </View>
@@ -144,10 +147,10 @@ const BreakStreakScreen = ({ navigation }) => {
                     <View style={styles.emptyState}>
                         <Unlink size={64} color={colors.textSecondary} opacity={0.3} />
                         <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                            Henüz kötü alışkanlık eklenmedi
+                            {t('noBreakHabits') || 'No bad habits yet'}
                         </Text>
                         <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
-                            Zincirleri kırmaya başlamak için ilk kötü alışkanlığını ekle!
+                            {t('addFirstBreakHabit') || 'Add one to start!'}
                         </Text>
                     </View>
                 ) : (
@@ -168,14 +171,14 @@ const BreakStreakScreen = ({ navigation }) => {
                                         <View style={styles.streakContainer}>
                                             <Award size={14} color={colors.primary} />
                                             <Text style={[styles.streakText, { color: colors.textSecondary }]}>
-                                                {daysSince} gündür temiz
+                                                {daysSince} {t('daysClean') || 'days clean'}
                                             </Text>
                                         </View>
                                         {habit.lastBreakDate && (
                                             <View style={styles.dateContainer}>
                                                 <Calendar size={12} color={colors.textSecondary} />
                                                 <Text style={[styles.dateText, { color: colors.textSecondary }]}>
-                                                    Son: {new Date(habit.lastBreakDate).toLocaleDateString('tr-TR')}
+                                                    {t('lastBreak')}: {new Date(habit.lastBreakDate).toLocaleDateString(t('locale') || 'en-US')}
                                                 </Text>
                                             </View>
                                         )}
@@ -184,21 +187,12 @@ const BreakStreakScreen = ({ navigation }) => {
                                 <TouchableOpacity
                                     style={[styles.breakButton, { backgroundColor: '#EF4444' }]}
                                     onPress={() => {
-                                        Alert.alert(
-                                            'Seriyi Kır?',
-                                            'Bu kötü alışkanlığı bugün yaptın mı?',
-                                            [
-                                                { text: 'Hayır', style: 'cancel' },
-                                                {
-                                                    text: 'Evet, Kırdım',
-                                                    style: 'destructive',
-                                                    onPress: () => handleToggle(habit.id)
-                                                }
-                                            ]
-                                        );
+                                        setPendingBreakId(habit.id);
+                                        setConfirmType('break');
+                                        setIsConfirmModalVisible(true);
                                     }}
                                 >
-                                    <Text style={styles.breakButtonText}>Kırdım</Text>
+                                    <Text style={styles.breakButtonText}>{t('broke') || 'I Broke'}</Text>
                                 </TouchableOpacity>
                             </TouchableOpacity>
                         );
@@ -225,7 +219,7 @@ const BreakStreakScreen = ({ navigation }) => {
                     <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
                         <View style={styles.modalHeader}>
                             <Text style={[styles.modalTitle, { color: colors.text }]}>
-                                {editingHabit ? 'Düzenle' : 'Kötü Alışkanlık Ekle'}
+                                {editingHabit ? t('editHabit') : t('addBreakHabit')}
                             </Text>
                             {editingHabit && (
                                 <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
@@ -236,7 +230,7 @@ const BreakStreakScreen = ({ navigation }) => {
 
                         <TextInput
                             style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-                            placeholder="örn. Sigara, Alkol"
+                            placeholder={t('habitNamePlaceholder') || "e.g. Smoking"}
                             placeholderTextColor={colors.textSecondary}
                             value={habitName}
                             onChangeText={setHabitName}
@@ -245,11 +239,59 @@ const BreakStreakScreen = ({ navigation }) => {
 
                         <View style={styles.modalButtons}>
                             <TouchableOpacity onPress={closeModal} style={styles.modalButton}>
-                                <Text style={{ color: colors.textSecondary }}>İptal</Text>
+                                <Text style={{ color: colors.textSecondary }}>{t('cancel')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={handleSave} style={[styles.modalButton, { backgroundColor: colors.primary }]}>
                                 <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                                    {editingHabit ? 'Kaydet' : 'Oluştur'}
+                                    {editingHabit ? t('save') || 'Save' : t('create') || 'Create'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Confirmation Modal */}
+            <Modal
+                visible={isConfirmModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setIsConfirmModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.card, alignItems: 'center' }]}>
+                        <View style={[styles.iconBox, { backgroundColor: '#EF444420', marginBottom: 16, width: 64, height: 64, borderRadius: 32 }]}>
+                            {confirmType === 'delete' ? <Trash2 size={32} color="#EF4444" /> : <Unlink size={32} color="#EF4444" />}
+                        </View>
+                        <Text style={[styles.modalTitle, { color: colors.text, textAlign: 'center', marginBottom: 8 }]}>
+                            {confirmType === 'delete' ? (t('confirmDelete') || 'Delete Habit') : (t('confirmBreak') || 'Break Streak?')}
+                        </Text>
+                        <Text style={[styles.subtitle, { color: colors.textSecondary, textAlign: 'center', marginBottom: 24 }]}>
+                            {confirmType === 'delete' ? (t('deletePrompt') || 'Are you sure?') : (t('confirmBreakMessage') || 'Did you do this bad habit today?')}
+                        </Text>
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                onPress={() => setIsConfirmModalVisible(false)}
+                                style={[styles.modalButton, { flex: 1, alignItems: 'center' }]}
+                            >
+                                <Text style={{ color: colors.textSecondary }}>{t('cancel')}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    if (confirmType === 'delete') {
+                                        deleteBreakHabit(pendingBreakId);
+                                        setIsConfirmModalVisible(false);
+                                        closeModal();
+                                    } else {
+                                        handleToggle(pendingBreakId);
+                                        setIsConfirmModalVisible(false);
+                                    }
+                                }}
+                                style={[styles.modalButton, { backgroundColor: '#EF4444', flex: 1, alignItems: 'center' }]}
+                            >
+                                <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                                    {confirmType === 'delete' ? (t('delete') || 'Delete') : (t('yes') || 'Yes, I Broke It')}
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -264,18 +306,18 @@ const BreakStreakScreen = ({ navigation }) => {
                     onPress={() => navigation.navigate('Paywall')}
                 >
                     <View style={styles.adLabelContainer}>
-                        <Text style={styles.adLabel}>Reklam</Text>
+                        <Text style={styles.adLabel}>Ad</Text>
                     </View>
                     <View style={styles.adContent}>
                         <Text style={[styles.adTitle, { color: colors.text }]}>
-                            Onyx Pro'yu Aç
+                            {t('unlockOnyxPro') || 'Unlock Onyx Pro'}
                         </Text>
                         <Text style={[styles.adDesc, { color: colors.textSecondary }]}>
-                            Reklamları kaldır & sınırsız kötü alışkanlık takip et
+                            {t('removeAdsDesc')}
                         </Text>
                     </View>
                     <View style={[styles.adButton, { backgroundColor: colors.primary }]}>
-                        <Text style={styles.adButtonText}>Yükselt</Text>
+                        <Text style={styles.adButtonText}>{t('upgrade') || 'Upgrade'}</Text>
                     </View>
                 </TouchableOpacity>
             )}

@@ -5,11 +5,12 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useUser } from '../context/UserContext';
-import { Home, Target, Settings, Unlink } from 'lucide-react-native';
+import { Home, Target, Settings, Unlink, List } from 'lucide-react-native';
 
 // Screens
 import AuthScreen from '../screens/auth/AuthScreen';
 import HomeScreen from '../screens/home/HomeScreen';
+import HabitsScreen from '../screens/home/HabitsScreen';
 import FocusScreen from '../screens/focus/FocusScreen';
 import BreakStreakScreen from '../screens/break/BreakStreakScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
@@ -44,6 +45,13 @@ const MainTabs = () => {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />
+        }}
+      />
+      <Tab.Screen
+        name="Habits"
+        component={HabitsScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => <List size={size} color={color} />
         }}
       />
       <Tab.Screen

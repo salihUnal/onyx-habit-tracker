@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useHabits } from '../../context/HabitContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Zap, Shield, Moon, Layout } from 'lucide-react-native';
+import { Zap, Shield, Moon, Layout, Unlink, Check } from 'lucide-react-native';
 
 const PaywallScreen = ({ navigation, route }) => {
   const theme = useTheme();
@@ -15,19 +15,30 @@ const PaywallScreen = ({ navigation, route }) => {
   const { t } = useLanguage();
   const { trigger } = route.params || {};
 
+  const [successModalVisible, setSuccessModalVisible] = React.useState(false);
+  const [successMessage, setSuccessMessage] = React.useState('');
+
   const startAd = async () => {
     // Directly give reward without showing ad overlay (same as HomeScreen)
     if (trigger === 'streak_repair') {
       const { habitId } = route.params;
       await repairStreak(habitId);
-      alert('Seri Onarıldı!');
+      setSuccessMessage('Seri Başarıyla Onarıldı!');
     } else if (trigger === 'break_habit_limit') {
       await rewardExtraHabit();
-      alert('Ödül Kazanıldı! 1 saat içinde yeni kötü alışkanlık ekleyebilirsin.');
+      setSuccessMessage('Ödül Kazanıldı! 1 saat içinde yeni kötü alışkanlık ekleyebilirsin.');
+    } else if (trigger === 'focus_limit') {
+      await rewardExtraHabit();
+      setSuccessMessage('Ödül Kazanıldı! Ekstra odaklanma oturumu hakkı kazandın.');
     } else {
       await rewardExtraHabit();
-      alert('Ödül Kazanıldı! 1 saat içinde yeni alışkanlık ekleyebilirsin.');
+      setSuccessMessage('Ödül Kazanıldı! 1 saat içinde yeni alışkanlık ekleyebilirsin.');
     }
+    setSuccessModalVisible(true);
+  };
+
+  const closeSuccessModal = () => {
+    setSuccessModalVisible(false);
     navigation.goBack();
   };
 
@@ -90,6 +101,11 @@ const PaywallScreen = ({ navigation, route }) => {
             description="Ana ekranını özelleştir"
           />
           <FeatureRow
+            icon={Unlink}
+            title="Zincir Kırma"
+            description="Kötü alışkanlıkları ve bağımlılıkları yen"
+          />
+          <FeatureRow
             icon={Shield}
             title="Reklamsız"
             description="Dikkat dağıtmayan deneyim"
@@ -115,7 +131,7 @@ const PaywallScreen = ({ navigation, route }) => {
             </Text>
           </TouchableOpacity>
 
-          {(trigger === 'habit_limit' || trigger === 'break_habit_limit' || trigger === 'streak_repair') && (
+          {(trigger === 'habit_limit' || trigger === 'break_habit_limit' || trigger === 'streak_repair' || trigger === 'focus_limit') && (
             <TouchableOpacity
               style={styles.watchAdButton}
               onPress={startAd}
@@ -123,12 +139,37 @@ const PaywallScreen = ({ navigation, route }) => {
               <Text style={[styles.watchAdText, { color: theme.colors.textSecondary }]}>
                 {trigger === 'streak_repair' ? 'Reklam İzleyerek Onar' :
                   trigger === 'break_habit_limit' ? 'Reklam İzleyerek Kötü Alışkanlık Ekle' :
-                    'Reklam İzleyerek Alışkanlık Ekle'}
+                    trigger === 'focus_limit' ? 'Reklam İzleyerek Odaklanmaya Başla' :
+                      'Reklam İzleyerek Alışkanlık Ekle'}
               </Text>
             </TouchableOpacity>
           )}
         </View>
       </ScrollView>
+
+      {/* Success Modal */}
+      <Modal
+        visible={successModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeSuccessModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.secondary]}
+              style={styles.modalIconContainer}
+            >
+              <Check size={32} color="white" />
+            </LinearGradient>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Harika!</Text>
+            <Text style={[styles.modalText, { color: theme.colors.textSecondary }]}>{successMessage}</Text>
+            <TouchableOpacity onPress={closeSuccessModal} style={[styles.modalButton, { backgroundColor: theme.colors.primary }]}>
+              <Text style={styles.modalButtonText}>Tamam</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -250,6 +291,55 @@ const styles = StyleSheet.create({
   watchAdText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24
+  },
+  modalContent: {
+    width: '100%',
+    padding: 32,
+    borderRadius: 24,
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  modalText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 16,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
