@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "405005586790",
+    "project_id": "onyx-habit-tracker",
+    "storage_bucket": "onyx-habit-tracker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:405005586790:android:56a9562c3144dd16acf8a7",
+        "android_client_info": {
+          "package_name": "com.onyx.habittracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "405005586790-d9ccn5oeriqbvee15beth3rms8lq34ns.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCg7plgXni-Cxrnu6Ako07ezQu8ATdJr10"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "405005586790-d9ccn5oeriqbvee15beth3rms8lq34ns.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

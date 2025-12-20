@@ -107,10 +107,38 @@ const WidgetStoreScreen = ({ navigation }) => {
             </View>
           )}
         </TouchableOpacity>
+
+        {/* Setup Guide Section */}
+        <View style={styles.guideSection}>
+          <Text style={[styles.guideTitle, { color: theme.colors.text }]}>{t('widgetSetup')}</Text>
+          <Text style={[styles.guideDesc, { color: theme.colors.textSecondary }]}>{t('widgetSetupDesc')}</Text>
+
+          <View style={styles.steps}>
+            <Step number="1" text={t('step1')} theme={theme} />
+            <Step number="2" text={t('step2')} theme={theme} />
+            <Step number="3" text={t('step3')} theme={theme} />
+          </View>
+
+          <View style={[styles.warningBox, { backgroundColor: theme.colors.primary + '10', borderColor: theme.colors.primary + '30' }]}>
+            <Ionicons name="information-circle" size={24} color={theme.colors.primary} />
+            <Text style={[styles.warningText, { color: theme.colors.textSecondary }]}>
+              {t('nativeLimitationWarning')}
+            </Text>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
 };
+
+const Step = ({ number, text, theme }) => (
+  <View style={styles.stepRow}>
+    <View style={[styles.stepNumber, { backgroundColor: theme.colors.primary }]}>
+      <Text style={styles.stepNumberText}>{number}</Text>
+    </View>
+    <Text style={[styles.stepText, { color: theme.colors.text }]}>{text}</Text>
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
@@ -203,6 +231,59 @@ const styles = StyleSheet.create({
   },
   lockIcon: {
     padding: 4,
+  },
+  guideSection: {
+    marginTop: 40,
+    paddingBottom: 40,
+  },
+  guideTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  guideDesc: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  steps: {
+    gap: 16,
+    marginBottom: 32,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepNumberText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  warningBox: {
+    flexDirection: 'row',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+    alignItems: 'center',
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
   },
 });
 

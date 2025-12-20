@@ -2,11 +2,12 @@
   "expo": {
     "name": "Onyx",
     "slug": "onyx-habit-tracker",
+    "scheme": "onyx-habit-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/onyx-app-icon-1024x1024.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/onyx-app-icon-1024x1024.png",
       "resizeMode": "contain",
@@ -23,20 +24,42 @@
         "backgroundColor": "#121212"
       },
       "package": "com.onyx.habittracker",
+      "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "icon": "./assets/images/onyx-app-icon-512x512.png"
     },
     "web": {
       "favicon": "./assets/images/onyx-app-icon-512x512.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "your-eas-project-id"
-      }
-    },
     "plugins": [
       "expo-asset",
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-9005956424727190~4380402516",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "userTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMultiDex": true,
+            "kotlinVersion": "1.9.24"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e90fd087-5b5b-483c-bd94-24fcd6eb44e3"
+      }
+    }
+  },
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-9005956424727190~4380402516",
+    "ios_app_id": "ca-app-pub-3940256099942544~1458002511"
   }
 }

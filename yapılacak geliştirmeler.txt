@@ -1,0 +1,20 @@
+Projenizi Play Store'da başarılı bir şekilde yayınlamak ve sürdürülebilir bir pasif gelir elde etmek için şu anki altyapı "demo" seviyesinde. Gerçek gelir için sistemin yerel cihazdan buluta ve gerçek ödeme sistemlerine taşınması gerekiyor.
+
+İncelediğim kadarıyla yapılması gereken kritik eklemeler ve düzeltmeler şunlardır:
+
+1. Gelir Modeli ve Ödeme Sistemleri (Kritik)
+Gerçek Uygulama İçi Satın Alma (IAP): Şu anki 
+upgradeToPro
+ fonksiyonu sadece yerel bir değişkeni değiştiriyor. Play Store'da bu geçersizdir. RevenueCat entegrasyonu yapmalısınız. Bu, hem ödemeleri doğrular hem de kullanıcının cihaz değiştirdiğinde "Satın Alımı Geri Yükle" (Restore Purchase) yapabilmesini sağlar.
+Gerçek Reklamlar (AdMob): Şu an reklam izleme butonları sadece bir başarı mesajı gösteriyor. react-native-google-mobile-ads kütüphanesini kurarak gerçek ödüllü reklamlar (Rewarded Ads) ve geçiş reklamları (Interstitials) eklemelisiniz.
+Fiyatlandırma Stratejisi: Ömür boyu 29.99$ iddialı bir rakam. Bunun yanına "Aylık" ve "Yıllık" abonelik seçenekleri eklemek, dönüşüm oranlarını (conversion rate) artıracaktır.
+2. Veri Güvenliği ve Senkronizasyon (Cloud Sync)
+Veri Kaybını Önleme: Şu an veriler sadece AsyncStorage'da (telefonun belleğinde) tutuluyor. Kullanıcı uygulamayı silerse tüm geçmişi gider. Bu durum ücretli bir uygulama için kabul edilemez.
+Firebase Entegrasyonu: Kullanıcıların Google ile giriş yapıp verilerini buluta yedekleyebileceği bir yapı kurmalısınız. Bu sayede "Pasif Gelir" hedefiniz için sadık bir kullanıcı kitlesi oluşturursunuz.
+3. Play Store Yasal Gereksinimleri
+Hesap Silme (Account Deletion): Google ve Apple, giriş özelliği olan uygulamalarda "Hesabımı Sil" butonu olmasını zorunlu tutuyor. Ayarlar kısmına bu özelliği eklemelisiniz.
+Gizlilik Politikası ve Kullanım Şartları: Uygulama içinde ve mağaza girişinde bu linklerin olması şart. Ayarlar -> Hakkında kısmına bu linkleri eklemeliyiz.
+4. Kullanıcı Deneyimi (UX) ve Tutundurma
+Onboarding (Tanıtım): Uygulama ilk açıldığında "Zincir Kırma" ve "Odaklanma" özelliklerini anlatan 3-4 sayfalık şık bir karşılama ekranı eklenmeli.
+Widgetlar: Kodda "Widget Store" gördüm ancak Expo'da yerel widget desteği sınırlıdır. Gerçek ana ekran widgetları için özel Expo Config Plugin'leri yazılması veya kullanıcıya bu özelliğin "Yolda" olduğu belirtilmeli.
+Analiz (Analytics): Kullanıcılar nerede takılıyor, hangi alışkanlıkları daha çok ekliyor? Bunu görmek için Firebase Analytics veya Mixpanel eklemelisiniz.

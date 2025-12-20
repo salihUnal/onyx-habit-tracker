@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from './UserContext';
+import { db, auth } from '../config/firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 const defaultHabitContext = {
   habits: [],
@@ -17,6 +19,7 @@ export const HabitProvider = ({ children }) => {
   const [extraHabits, setExtraHabits] = useState(0);
   const [adRewardExpiry, setAdRewardExpiry] = useState(null);
   const [focusSessionsToday, setFocusSessionsToday] = useState(0);
+  const [focusHistory, setFocusHistory] = useState({}); // { '2023-10-01': totalMinutes }
   const [lastFocusDate, setLastFocusDate] = useState(null);
   const [focusState, setFocusState] = useState({
     isActive: false,
@@ -25,14 +28,45 @@ export const HabitProvider = ({ children }) => {
     elapsedSeconds: 0, // Accumulated elapsed time before current active session
     sessionCompleted: false
   });
-  const { isPro } = useUser();
+  const { isPro, user } = useUser();
 
   useEffect(() => {
     loadHabits();
     loadBreakHabits();
     loadExtraHabits();
     loadFocusStats();
-  }, []);
+    if (user?.id) {
+      loadFromCloud();
+    }
+  }, [user?.id]);
+
+  const loadFromCloud = async () => {
+    if (!auth.currentUser) return;
+    try {
+      const docRef = doc(db, 'habits', auth.currentUser.uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.habits) saveHabits(data.habits, false);
+        if (data.breakHabits) saveBreakHabits(data.breakHabits, false);
+      }
+    } catch (e) {
+      console.error('Failed to load from cloud', e);
+    }
+  };
+
+  const syncWithCloud = async (habitsToSync, breakHabitsToSync) => {
+    if (!auth.currentUser) return;
+    try {
+      await setDoc(doc(db, 'habits', auth.currentUser.uid), {
+        habits: habitsToSync || habits,
+        breakHabits: breakHabitsToSync || breakHabits,
+        lastUpdated: new Date().toISOString()
+      }, { merge: true });
+    } catch (e) {
+      console.error('Failed to sync with cloud', e);
+    }
+  };
 
   const loadHabits = async () => {
     try {
@@ -56,19 +90,21 @@ export const HabitProvider = ({ children }) => {
     }
   };
 
-  const saveHabits = async (newHabits) => {
+  const saveHabits = async (newHabits, sync = true) => {
     setHabits(newHabits);
     try {
       await AsyncStorage.setItem('habits', JSON.stringify(newHabits));
+      if (sync) syncWithCloud(newHabits, null);
     } catch (e) {
       console.error('Failed to save habits', e);
     }
   };
 
-  const saveBreakHabits = async (newBreakHabits) => {
+  const saveBreakHabits = async (newBreakHabits, sync = true) => {
     setBreakHabits(newBreakHabits);
     try {
       await AsyncStorage.setItem('breakHabits', JSON.stringify(newBreakHabits));
+      if (sync) syncWithCloud(null, newBreakHabits);
     } catch (e) {
       console.error('Failed to save break habits', e);
     }
@@ -91,6 +127,11 @@ export const HabitProvider = ({ children }) => {
       const today = new Date().toISOString().split('T')[0];
       const storedDate = await AsyncStorage.getItem('lastFocusDate');
       const storedCount = await AsyncStorage.getItem('focusSessionsToday');
+      const storedHistory = await AsyncStorage.getItem('focusHistory');
+
+      if (storedHistory) {
+        setFocusHistory(JSON.parse(storedHistory));
+      }
 
       if (storedDate === today) {
         setLastFocusDate(today);
@@ -106,19 +147,35 @@ export const HabitProvider = ({ children }) => {
     }
   };
 
-  const incrementFocusSession = async () => {
+  const recordFocusSession = async (durationMinutes) => {
     const today = new Date().toISOString().split('T')[0];
-    let newCount = 1;
 
+    // Update today's count
+    let newCount = 1;
     if (lastFocusDate === today) {
       newCount = focusSessionsToday + 1;
     } else {
       setLastFocusDate(today);
       await AsyncStorage.setItem('lastFocusDate', today);
     }
-
     setFocusSessionsToday(newCount);
     await AsyncStorage.setItem('focusSessionsToday', newCount.toString());
+
+    // Update history
+    setFocusHistory(prev => {
+      const newHistory = { ...prev };
+      newHistory[today] = (newHistory[today] || 0) + durationMinutes;
+      AsyncStorage.setItem('focusHistory', JSON.stringify(newHistory)).catch(e => console.error(e));
+
+      // Sync focus history to cloud if available
+      if (auth.currentUser) {
+        setDoc(doc(db, 'habits', auth.currentUser.uid), {
+          focusHistory: newHistory,
+        }, { merge: true }).catch(e => console.error('Cloud sync focus error', e));
+      }
+
+      return newHistory;
+    });
   };
 
   const rewardExtraHabit = async () => {
@@ -246,7 +303,8 @@ export const HabitProvider = ({ children }) => {
     // If completed or > 50%
     let completed = false;
     if (totalElapsed >= totalDurationSeconds || totalElapsed >= (totalDurationSeconds / 2)) {
-      incrementFocusSession();
+      const minutesCompleted = Math.round(totalElapsed / 60);
+      recordFocusSession(minutesCompleted);
       completed = true;
     }
 
@@ -451,7 +509,8 @@ export const HabitProvider = ({ children }) => {
       toggleBreakHabit,
       deleteBreakHabit,
       focusSessionsToday,
-      incrementFocusSession,
+      focusHistory,
+      recordFocusSession,
       focusState,
       startFocus,
       pauseFocus,

@@ -8,18 +8,69 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Zap, Shield, Moon, Layout, Unlink, Check } from 'lucide-react-native';
 
+let Purchases;
+try {
+  Purchases = require('react-native-purchases').default;
+} catch (e) {
+  console.log('Purchases (RevenueCat) not available');
+}
+
+let AdManager;
+try {
+  AdManager = require('../../ads/AdManager').default;
+} catch (e) {
+  console.log('AdManager not available');
+}
+
 const PaywallScreen = ({ navigation, route }) => {
   const theme = useTheme();
-  const { upgradeToPro } = useUser();
+  const { upgradeToPro, restorePurchases } = useUser();
   const { rewardExtraHabit, repairStreak } = useHabits();
   const { t } = useLanguage();
   const { trigger } = route.params || {};
 
   const [successModalVisible, setSuccessModalVisible] = React.useState(false);
   const [successMessage, setSuccessMessage] = React.useState('');
+  const [offerings, setOfferings] = React.useState(null);
 
-  const startAd = async () => {
-    // Directly give reward without showing ad overlay (same as HomeScreen)
+  React.useEffect(() => {
+    if (Purchases) fetchOfferings();
+    if (AdManager) AdManager.init(); // Initialize AdMob
+  }, []);
+
+  const fetchOfferings = async () => {
+    if (!Purchases) return;
+    try {
+      const offerings = await Purchases.getOfferings();
+      if (offerings.current !== null) {
+        setOfferings(offerings.current);
+      }
+    } catch (e) {
+      console.error('Fetch Offerings Error:', e);
+    }
+  };
+
+  const startAd = () => {
+    if (!AdManager) {
+      // Fallback: Directly reward for testing in Expo Go
+      if (__DEV__) {
+        console.log('AdManager not found - rewarding directly (DEV only)');
+        giveReward();
+      }
+      return;
+    }
+    AdManager.loadRewardedAd(
+      async (reward) => {
+        giveReward();
+      },
+      () => {
+        // Ad closed
+        console.log('Ad closed');
+      }
+    );
+  };
+
+  const giveReward = async () => {
     if (trigger === 'streak_repair') {
       const { habitId } = route.params;
       await repairStreak(habitId);
@@ -42,9 +93,20 @@ const PaywallScreen = ({ navigation, route }) => {
     navigation.goBack();
   };
 
-  const handlePurchase = async () => {
-    await upgradeToPro();
-    navigation.goBack();
+  const handlePurchase = async (pkg) => {
+    const success = await upgradeToPro(pkg);
+    if (success) {
+      setSuccessMessage('Onyx Pro Başarıyla Aktif Edildi!');
+      setSuccessModalVisible(true);
+    }
+  };
+
+  const handleRestore = async () => {
+    const success = await restorePurchases();
+    if (success) {
+      setSuccessMessage('Satın alımlar başarıyla geri yüklendi!');
+      setSuccessModalVisible(true);
+    }
   };
 
   const FeatureRow = ({ icon: Icon, title, description }) => (
@@ -80,54 +142,78 @@ const PaywallScreen = ({ navigation, route }) => {
           </LinearGradient>
           <Text style={[styles.title, { color: theme.colors.text }]}>ONYX <Text style={{ color: theme.colors.primary }}>PRO</Text></Text>
           <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-            Tam Potansiyelini Aç
+            {t('unlockPotantial') || 'Tam Potansiyelini Aç'}
           </Text>
         </View>
 
         <View style={styles.features}>
           <FeatureRow
             icon={Zap}
-            title="Sınırsız Alışkanlık"
-            description="İstediğin kadar alışkanlık takip et"
+            title={t('unlimitedHabits') || "Sınırsız Alışkanlık"}
+            description={t('unlimitedHabitsDesc') || "İstediğin kadar alışkanlık takip et"}
           />
           <FeatureRow
             icon={Moon}
-            title="Karanlık Mod & Temalar"
-            description="Özel neon temalara eriş"
+            title={t('darkMode') || "Karanlık Mod & Temalar"}
+            description={t('darkModeDesc') || "Özel neon temalara eriş"}
           />
           <FeatureRow
             icon={Layout}
-            title="Pro Widgetlar"
-            description="Ana ekranını özelleştir"
+            title={t('proWidgets') || "Pro Widgetlar"}
+            description={t('proWidgetsDesc') || "Ana ekranını özelleştir"}
           />
           <FeatureRow
             icon={Unlink}
-            title="Zincir Kırma"
-            description="Kötü alışkanlıkları ve bağımlılıkları yen"
+            title={t('breakStreaks') || "Zincir Kırma"}
+            description={t('breakStreaksDesc') || "Kötü alışkanlıkları ve bağımlılıkları yen"}
           />
           <FeatureRow
             icon={Shield}
-            title="Reklamsız"
-            description="Dikkat dağıtmayan deneyim"
+            title={t('noAds') || "Reklamsız"}
+            description={t('noAdsDesc') || "Dikkat dağıtmayan deneyim"}
           />
         </View>
 
         <View style={styles.pricingContainer}>
-          <TouchableOpacity onPress={handlePurchase} activeOpacity={0.9}>
-            <LinearGradient
-              colors={[theme.colors.primary, theme.colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.purchaseButton}
+          {offerings && offerings.availablePackages.map((pkg) => (
+            <TouchableOpacity
+              key={pkg.identifier}
+              onPress={() => handlePurchase(pkg)}
+              activeOpacity={0.9}
             >
-              <Text style={styles.purchaseButtonText}>Ömür Boyu Erişimi Aç</Text>
-              <Text style={styles.priceText}>$29.99 / Ömür Boyu</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={pkg.packageType === 'LIFETIME' ? [theme.colors.primary, theme.colors.secondary] : [theme.colors.card, theme.colors.card]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.purchaseButton, pkg.packageType !== 'LIFETIME' && { borderWidth: 1, borderColor: theme.colors.border }]}
+              >
+                <Text style={[styles.purchaseButtonText, pkg.packageType !== 'LIFETIME' && { color: theme.colors.text }]}>
+                  {pkg.product.title}
+                </Text>
+                <Text style={[styles.priceText, pkg.packageType !== 'LIFETIME' && { color: theme.colors.textSecondary }]}>
+                  {pkg.product.priceString} / {pkg.packageType === 'LIFETIME' ? t('lifetime') : pkg.packageType === 'ANNUAL' ? t('annual') : t('monthly')}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          ))}
 
-          <TouchableOpacity>
+          {!offerings && (
+            <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.9}>
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.purchaseButton}
+              >
+                <Text style={styles.purchaseButtonText}>{t('unlockLifetime') || 'Ömür Boyu Erişimi Aç'}</Text>
+                <Text style={styles.priceText}>$29.99 / {t('lifetime') || 'Ömür Boyu'}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity onPress={handleRestore}>
             <Text style={[styles.restoreText, { color: theme.colors.textSecondary }]}>
-              Satın Alımı Geri Yükle
+              {t('restorePurchase') || 'Satın Alımı Geri Yükle'}
             </Text>
           </TouchableOpacity>
 

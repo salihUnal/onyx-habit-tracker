@@ -506,7 +506,7 @@ const HabitsScreen = ({ navigation }) => {
                         <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
                             <View style={styles.modalHeader}>
                                 <Text style={[styles.modalTitle, { color: colors.text }]}>
-                                    {editingHabit ? t('editHabit') || 'Edit Habit' : t('newHabit')}
+                                    {editingHabit ? t('editHabit') : t('newHabit')}
                                 </Text>
                                 {editingHabit && (
                                     <TouchableOpacity onPress={handleDeleteHabit} style={styles.deleteButton}>
@@ -588,7 +588,7 @@ const HabitsScreen = ({ navigation }) => {
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={handleSaveHabit} style={[styles.modalButton, { backgroundColor: colors.primary }]}>
                                     <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                                        {editingHabit ? t('save') || 'Save' : t('create')}
+                                        {editingHabit ? t('save') : t('create')}
                                     </Text>
                                 </TouchableOpacity>
                             </View>

@@ -7,6 +7,17 @@ import { useLanguage } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, CheckCircle, XCircle, AlertTriangle, TrendingUp, Calendar } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
+import Config from '../../config/Config';
+
+let BannerAd, BannerAdSize, TestIds;
+try {
+  const AdMob = require('react-native-google-mobile-ads');
+  BannerAd = AdMob.BannerAd;
+  BannerAdSize = AdMob.BannerAdSize;
+  TestIds = AdMob.TestIds;
+} catch (e) {
+  console.log('AdMob not available in this environment');
+}
 
 const HomeScreen = ({ navigation }) => {
   const theme = useTheme();
@@ -34,17 +45,19 @@ const HomeScreen = ({ navigation }) => {
   // Break Streaks (Zincir Kırma)
   const activeBreakHabits = breakHabits || [];
 
-  const getDaysSince = (lastBreakDate) => {
-    if (!lastBreakDate) return 0;
+  const getDaysSince = (lastBreakDate, createdAt) => {
+    const referenceDate = lastBreakDate || createdAt;
+    if (!referenceDate) return 0;
+
     const today = new Date();
-    const lastBreak = new Date(lastBreakDate);
+    const start = new Date(referenceDate);
     // Reset hours to compare dates only
     today.setHours(0, 0, 0, 0);
-    lastBreak.setHours(0, 0, 0, 0);
+    start.setHours(0, 0, 0, 0);
 
-    const diffTime = Math.abs(today - lastBreak);
+    const diffTime = today - start;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    return Math.max(0, diffDays);
   };
 
   // Active Focus Timer
@@ -213,7 +226,7 @@ const HomeScreen = ({ navigation }) => {
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginLeft: -4 }}>
           {activeBreakHabits.map(habit => {
-            const daysClean = getDaysSince(habit.lastBreakDate);
+            const daysClean = getDaysSince(habit.lastBreakDate, habit.createdAt);
             return (
               <TouchableOpacity
                 key={habit.id}
@@ -247,22 +260,16 @@ const HomeScreen = ({ navigation }) => {
       </ScrollView>
 
       {/* Banner Ad */}
-      {!isPro && (
-        <TouchableOpacity
-          style={[styles.bannerAd, { backgroundColor: colors.surface, borderTopColor: colors.border }]}
-          onPress={() => navigation.navigate('Paywall')}
-        >
-          <View style={styles.adLabelContainer}>
-            <Text style={styles.adLabel}>Ad</Text>
-          </View>
-          <View style={styles.adContent}>
-            <Text style={[styles.adTitle, { color: colors.text }]}>{t('unlockOnyxPro') || 'Unlock Onyx Pro'}</Text>
-            <Text style={[styles.adDesc, { color: colors.textSecondary }]}>{t('removeAdsDesc')}</Text>
-          </View>
-          <View style={[styles.adButton, { backgroundColor: colors.primary }]}>
-            <Text style={styles.adButtonText}>{t('upgrade') || 'Upgrade'}</Text>
-          </View>
-        </TouchableOpacity>
+      {!isPro && BannerAd && (
+        <View style={styles.bannerAdContainer}>
+          <BannerAd
+            unitId={__DEV__ ? TestIds.BANNER : Config.ADMOB_BANNER_ID}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            requestOptions={{
+              requestNonPersonalizedAdsOnly: true,
+            }}
+          />
+        </View>
       )}
     </View>
   );
@@ -416,52 +423,11 @@ const styles = StyleSheet.create({
   },
 
   // Banner
-  bannerAd: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    flexDirection: 'row',
+  bannerAdContainer: {
     alignItems: 'center',
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  adLabelContainer: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 4,
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  adLabel: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  adContent: {
-    flex: 1,
-  },
-  adTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  adDesc: {
-    fontSize: 10,
-  },
-  adButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  adButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+    justifyContent: 'center',
+    width: '100%',
+    backgroundColor: 'transparent',
   },
 });
 

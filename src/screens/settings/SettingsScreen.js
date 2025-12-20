@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Modal, Image, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Modal, Image, TextInput, Alert, Linking } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useHabits } from '../../context/HabitContext';
 import { Ionicons } from '@expo/vector-icons';
-import { Globe, Moon, LogOut, Layout, User, Crown, Edit2, Camera, Image as ImageIcon, X } from 'lucide-react-native';
+import { Globe, Moon, LogOut, Layout, User, Crown, Edit2, Camera, Image as ImageIcon, X, Shield } from 'lucide-react-native';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -188,6 +188,29 @@ const SettingsScreen = ({ navigation }) => {
         </TouchableOpacity>
     );
 
+    const handleRestore = async () => {
+        const success = await userContext.restorePurchases();
+        if (success) Alert.alert(t('success'), t('restoreSuccess') || 'Satın alımlar başarıyla geri yüklendi!');
+    };
+
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            t('deleteAccount'),
+            t('deleteAccountPrompt') || 'Tüm verileriniz kalıcı olarak silinecektir. Emin misiniz?',
+            [
+                { text: t('cancel'), style: 'cancel' },
+                {
+                    text: t('delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        const result = await userContext.deleteAccount();
+                        if (!result.success) Alert.alert(t('error'), result.error);
+                    }
+                }
+            ]
+        );
+    };
+
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
             <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('settings')}</Text>
@@ -196,10 +219,20 @@ const SettingsScreen = ({ navigation }) => {
                 <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>{t('preferences')}</Text>
                 <SettingItem icon={Globe} title={t('language')} value={language} onPress={() => setLanguageModalVisible(true)} />
                 <SettingItem icon={Moon} title={t('darkMode')} isSwitch switchValue={theme.dark} onSwitchChange={theme.toggleTheme} />
+
                 <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary, marginTop: 24 }]}>{t('customization')}</Text>
                 <SettingItem icon={Layout} title={t('widgetStore')} onPress={() => navigation.navigate('WidgetStore')} />
+
                 <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary, marginTop: 24 }]}>{t('account')}</Text>
+                {!isPro && (
+                    <SettingItem icon={Crown} title={t('restorePurchase')} onPress={handleRestore} />
+                )}
                 <SettingItem icon={LogOut} title={t('logOut')} onPress={handleLogout} />
+                <SettingItem icon={X} title={t('deleteAccount')} onPress={handleDeleteAccount} />
+
+                <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary, marginTop: 24 }]}>{t('about')}</Text>
+                <SettingItem icon={Shield} title={t('privacyPolicy')} onPress={() => Linking.openURL('https://onyxhabittracker.com/privacy')} />
+                <SettingItem icon={Edit2} title={t('termsOfService')} onPress={() => Linking.openURL('https://onyxhabittracker.com/terms')} />
 
                 {/* Dev Tool for Testing */}
                 <TouchableOpacity

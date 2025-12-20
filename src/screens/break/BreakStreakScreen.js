@@ -78,21 +78,22 @@ const BreakStreakScreen = ({ navigation }) => {
 
     const handleToggle = (id) => {
         toggleBreakHabit(id);
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 3000);
+        // Removed confetti here because breaking a streak is a negative event.
     };
 
-    const getDaysSince = (lastBreakDate) => {
-        if (!lastBreakDate) return 0;
+    const getDaysSince = (lastBreakDate, createdAt) => {
+        const referenceDate = lastBreakDate || createdAt;
+        if (!referenceDate) return 0;
+
         const today = new Date();
-        const lastBreak = new Date(lastBreakDate);
+        const start = new Date(referenceDate);
         // Reset hours to compare dates only
         today.setHours(0, 0, 0, 0);
-        lastBreak.setHours(0, 0, 0, 0);
+        start.setHours(0, 0, 0, 0);
 
-        const diffTime = Math.abs(today - lastBreak);
+        const diffTime = today - start;
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays;
+        return Math.max(0, diffDays);
     };
 
     return (
@@ -155,7 +156,7 @@ const BreakStreakScreen = ({ navigation }) => {
                     </View>
                 ) : (
                     breakHabits.map((habit) => {
-                        const daysSince = getDaysSince(habit.lastBreakDate);
+                        const daysSince = getDaysSince(habit.lastBreakDate, habit.createdAt);
                         return (
                             <TouchableOpacity
                                 key={habit.id}

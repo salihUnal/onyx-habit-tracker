@@ -11,7 +11,7 @@ import { BlurView } from 'expo-blur';
 
 const AuthScreen = () => {
   const theme = useTheme();
-  const { login } = useUser();
+  const { login, googleLogin } = useUser();
   const { t, language, setLanguage } = useLanguage();
   const [isReturningUser, setIsReturningUser] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
@@ -43,13 +43,12 @@ const AuthScreen = () => {
   };
 
   const handleLogin = (method) => {
-    const userData = {
-      id: '1',
-      name: 'User',
-      email: method === 'email' ? 'user@example.com' : null,
-      method
-    };
-    login(userData);
+    if (method === 'google') {
+      googleLogin();
+    } else {
+      // For now, only Google is implemented with Firebase
+      alert(t('comingSoon') || 'Coming Soon');
+    }
   };
 
   return (
@@ -242,11 +241,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
-    letterSpacing: 2,
+    letterSpacing: 1,
     textTransform: 'uppercase',
     opacity: 0.8,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 20,
   },
   cardContainer: {
     borderRadius: 32,
