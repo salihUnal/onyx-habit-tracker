@@ -48,6 +48,7 @@ export const UserProvider = ({ children }) => {
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: Config.GOOGLE_CLIENT_ID_IOS,
     androidClientId: Config.GOOGLE_CLIENT_ID_ANDROID,
+    webClientId: Config.GOOGLE_WEB_CLIENT_ID,
   });
 
   useEffect(() => {

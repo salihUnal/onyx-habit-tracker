@@ -1,8 +1,8 @@
 // configuration for API keys and Ad mobility IDs
 const Config = {
     // RevenueCat Configuration
-    REVENUECAT_API_KEY_ANDROID: 'test_lFGsDNOoTEdcKmpVUUQqXTSsWsn', // Replace with your Android public API key
-    REVENUECAT_API_KEY_IOS: 'test_lFGsDNOoTEdcKmpVUUQqXTSsWsn',     // Replace with your iOS public API key
+    REVENUECAT_API_KEY_ANDROID: 'goog_ChTODdIPJptCkDcijJNjgikKfZd',
+    REVENUECAT_API_KEY_IOS: 'test_akWXroIJFQOanamcckwTtuGpqyg',     // Keeping test key for iOS for now
     PRO_ENTITLEMENT_ID: 'appd32a585f83',                      // Replace with your entitlement ID
 
     // AdMob Configuration
@@ -24,7 +24,7 @@ const Config = {
     },
     GOOGLE_CLIENT_ID_IOS: '405005586790-nl62ie6gp693d82t4s32qsktfq7ppcn4.apps.googleusercontent.com',
     GOOGLE_CLIENT_ID_ANDROID: '405005586790-nl62ie6gp693d82t4s32qsktfq7ppcn4.apps.googleusercontent.com',
-    GOOGLE_CLIENT_ID_EXPO: '405005586790-nl62ie6gp693d82t4s32qsktfq7ppcn4.apps.googleusercontent.com',
+    GOOGLE_WEB_CLIENT_ID: '405005586790-d9ccn5oeriqbvee15beth3rms8lq34ns.apps.googleusercontent.com',
 };
 
 export default Config;

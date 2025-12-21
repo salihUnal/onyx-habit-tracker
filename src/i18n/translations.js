@@ -518,7 +518,6 @@ export const translations = {
     chooseFromGallery: 'Scegli dalla Galleria',
     remove: 'Rimuovi',
     error: 'Errore',
-    success: 'Successo',
     profileUpdated: 'Profilo aggiornato con successo!',
     nameCannotBeEmpty: 'Il nome non può essere vuoto',
     habitTrackerFocus: 'Tracker di Abitudini e Focus',
@@ -536,7 +535,6 @@ export const translations = {
     // New Habit Modal
     newHabit: 'Nuova Abitudine',
     habitNamePlaceholder: 'es. Leggi 20 min',
-    cancel: 'Annulla',
     create: 'Crea',
     // Share Screen
     shareToStory: 'Condividi nella Storia',
@@ -550,10 +548,11 @@ export const translations = {
     neonCyberpunk: 'Neon Cyberpunk',
     free: 'Gratis',
     // Dashboard Stats
-    habits: 'Abitudini',
-    streakDays: 'Serie',
-    dailyGoals: 'Obiettivi Giornalieri',
-    streak: 'Serie',
+    // Dashboard Stats (Already defined above)
+    // habits: 'Abitudini',
+    // streakDays: 'Serie',
+    // dailyGoals: 'Obiettivi Giornalieri',
+    // streak: 'Serie',
     // Focus Mode
     focusMode: 'Modalità Focus',
     startFocus: 'Avvia Focus',
@@ -655,7 +654,6 @@ export const translations = {
     chooseFromGallery: 'Выбрать из Галереи',
     remove: 'Удалить',
     error: 'Ошибка',
-    success: 'Успех',
     profileUpdated: 'Профиль успешно обновлен!',
     nameCannotBeEmpty: 'Имя не может быть пустым',
     habitTrackerFocus: 'Трекер Привычек и Фокус',
@@ -673,7 +671,6 @@ export const translations = {
     // New Habit Modal
     newHabit: 'Новая Привычка',
     habitNamePlaceholder: 'напр. Читать 20 мин',
-    cancel: 'Отмена',
     create: 'Создать',
     // Share Screen
     shareToStory: 'Поделиться в Истории',
@@ -687,10 +684,11 @@ export const translations = {
     neonCyberpunk: 'Неон Киберпанк',
     free: 'Бесплатно',
     // Dashboard Stats
-    habits: 'Привычки',
-    streakDays: 'Серия',
-    dailyGoals: 'Цели',
-    streak: 'Серия',
+    // Dashboard Stats (Already defined above)
+    // habits: 'Привычки',
+    // streakDays: 'Серия',
+    // dailyGoals: 'Цели',
+    // streak: 'Серия',
     // Focus Mode
     focusMode: 'Режим Фокуса',
     startFocus: 'Начать Фокус',
@@ -792,7 +790,6 @@ export const translations = {
     chooseFromGallery: '从相册选择',
     remove: '移除',
     error: '错误',
-    success: '成功',
     profileUpdated: '个人资料更新成功！',
     nameCannotBeEmpty: '姓名不能为空',
     habitTrackerFocus: '习惯追踪与专注',
@@ -810,7 +807,6 @@ export const translations = {
     // New Habit Modal
     newHabit: '新习惯',
     habitNamePlaceholder: '例如：阅读20分钟',
-    cancel: '取消',
     create: '创建',
     // Share Screen
     shareToStory: '分享到快拍',
@@ -824,10 +820,11 @@ export const translations = {
     neonCyberpunk: '霓虹赛博朋克',
     free: '免费',
     // Dashboard Stats
-    habits: '习惯',
-    streakDays: '连续',
-    dailyGoals: '每日目标',
-    streak: '连续',
+    // Dashboard Stats (Already defined above)
+    // habits: '习惯',
+    // streakDays: '连续',
+    // dailyGoals: '每日目标',
+    // streak: '连续',
     // Focus Mode
     focusMode: '专注模式',
     startFocus: '开始专注',

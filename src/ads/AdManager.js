@@ -4,7 +4,7 @@ import Config from '../config/Config';
 let MobileAds, MaxAdContentRating, TestIds, RewardedAd, RewardedAdEventType, InterstitialAd, AdEventType, AppOpenAd;
 try {
     const AdMob = require('react-native-google-mobile-ads');
-    MobileAds = AdMob.default;
+    MobileAds = AdMob.default || AdMob;
     MaxAdContentRating = AdMob.MaxAdContentRating;
     TestIds = AdMob.TestIds;
     RewardedAd = AdMob.RewardedAd;
