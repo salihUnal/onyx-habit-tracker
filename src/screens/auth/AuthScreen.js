@@ -8,13 +8,24 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Globe, Zap } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
+import { TextInput, ActivityIndicator, Alert } from 'react-native';
 
 const AuthScreen = () => {
   const theme = useTheme();
-  const { login, googleLogin } = useUser();
+  const { login, googleLogin, emailLogin, emailSignup, phoneLogin, verifyPhoneCode } = useUser();
   const { t, language, setLanguage } = useLanguage();
   const [isReturningUser, setIsReturningUser] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [emailModalVisible, setEmailModalVisible] = useState(false);
+  const [isSignup, setIsSignup] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [phoneModalVisible, setPhoneModalVisible] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isCodeSent, setIsCodeSent] = useState(false);
 
   const languages = [
     { code: 'English', label: 'English' },
@@ -45,9 +56,67 @@ const AuthScreen = () => {
   const handleLogin = (method) => {
     if (method === 'google') {
       googleLogin();
+    } else if (method === 'email') {
+      setEmailModalVisible(true);
+    } else if (method === 'phone') {
+      setPhoneModalVisible(true);
     } else {
-      // For now, only Google is implemented with Firebase
-      alert(t('comingSoon') || 'Coming Soon');
+      Alert.alert(t('comingSoon') || 'Coming Soon');
+    }
+  };
+
+  const handlePhoneLogin = async () => {
+    if (!phoneNumber) {
+      Alert.alert(t('error') || 'Error', t('enterPhoneNumber') || 'Please enter phone number');
+      return;
+    }
+    setAuthLoading(true);
+    // Note: In production, you need a RecaptchaVerifier. 
+    // This is a placeholder for where that would be passed.
+    const result = await phoneLogin(phoneNumber, null);
+    setAuthLoading(false);
+    if (result.success) {
+      setIsCodeSent(true);
+    } else {
+      Alert.alert(t('error') || 'Error', result.error);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!verificationCode) {
+      Alert.alert(t('error') || 'Error', t('enterCode') || 'Please enter verification code');
+      return;
+    }
+    setAuthLoading(true);
+    const result = await verifyPhoneCode(verificationCode);
+    setAuthLoading(false);
+    if (result.success) {
+      setPhoneModalVisible(false);
+      setIsCodeSent(false);
+    } else {
+      Alert.alert(t('error') || 'Error', result.error);
+    }
+  };
+
+  const handleEmailAuth = async () => {
+    if (!email || !password || (isSignup && !name)) {
+      Alert.alert(t('error') || 'Error', t('fillAllFields') || 'Please fill all fields');
+      return;
+    }
+
+    setAuthLoading(true);
+    let result;
+    if (isSignup) {
+      result = await emailSignup(email, password, name);
+    } else {
+      result = await emailLogin(email, password);
+    }
+    setAuthLoading(false);
+
+    if (result.success) {
+      setEmailModalVisible(false);
+    } else {
+      Alert.alert(t('error') || 'Error', result.error);
     }
   };
 
@@ -146,6 +215,131 @@ const AuthScreen = () => {
               ))}
             </ScrollView>
             <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.colors.surface }]} onPress={() => setLanguageModalVisible(false)}>
+              <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </BlurView>
+      </Modal>
+      <Modal visible={emailModalVisible} transparent animationType="slide" onRequestClose={() => setEmailModalVisible(false)}>
+        <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+              {isSignup ? t('signupWithEmail') : t('continueWithEmail')}
+            </Text>
+
+            <View style={styles.inputContainer}>
+              {isSignup && (
+                <TextInput
+                  style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+                  placeholder={t('name') || 'Name'}
+                  placeholderTextColor={theme.colors.textSecondary}
+                  value={name}
+                  onChangeText={setName}
+                />
+              )}
+              <TextInput
+                style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+                placeholder={t('email') || 'Email'}
+                placeholderTextColor={theme.colors.textSecondary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+              />
+              <TextInput
+                style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+                placeholder={t('password') || 'Password'}
+                placeholderTextColor={theme.colors.textSecondary}
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.mainButton, { backgroundColor: theme.colors.primary }]}
+              onPress={handleEmailAuth}
+              disabled={authLoading}
+            >
+              {authLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.mainButtonText}>
+                  {isSignup ? t('signup') : t('login')}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setIsSignup(!isSignup)}
+              style={styles.switchButton}
+            >
+              <Text style={{ color: theme.colors.textSecondary }}>
+                {isSignup ? t('alreadyHaveAccount') : t('dontHaveAccount')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
+              onPress={() => setEmailModalVisible(false)}
+            >
+              <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </BlurView>
+      </Modal>
+
+      {/* Phone Modal */}
+      <Modal visible={phoneModalVisible} transparent animationType="slide" onRequestClose={() => setPhoneModalVisible(false)}>
+        <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+              {isCodeSent ? (t('verifyCode') || 'Verify Code') : (t('phoneLogin') || 'Phone Login')}
+            </Text>
+
+            <View style={styles.inputContainer}>
+              {!isCodeSent ? (
+                <TextInput
+                  style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+                  placeholder={t('phoneNumberPlaceholder') || '+1 234 567 89 00'}
+                  placeholderTextColor={theme.colors.textSecondary}
+                  keyboardType="phone-pad"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                />
+              ) : (
+                <TextInput
+                  style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+                  placeholder={t('verificationCode') || 'Verification Code'}
+                  placeholderTextColor={theme.colors.textSecondary}
+                  keyboardType="number-pad"
+                  value={verificationCode}
+                  onChangeText={setVerificationCode}
+                />
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.mainButton, { backgroundColor: theme.colors.primary }]}
+              onPress={isCodeSent ? handleVerifyCode : handlePhoneLogin}
+              disabled={authLoading}
+            >
+              {authLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.mainButtonText}>
+                  {isCodeSent ? (t('verify') || 'Verify') : (t('sendCode') || 'Send Code')}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
+              onPress={() => {
+                setPhoneModalVisible(false);
+                setIsCodeSent(false);
+              }}
+            >
               <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
             </TouchableOpacity>
           </View>
@@ -289,6 +483,31 @@ const styles = StyleSheet.create({
   langItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1 },
   langText: { fontSize: 16, fontWeight: '500' },
   closeButton: { marginTop: 24, padding: 16, borderRadius: 16, alignItems: 'center' },
+  inputContainer: { gap: 12, marginBottom: 24 },
+  input: {
+    height: 56,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  mainButton: {
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  mainButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  switchButton: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
 });
 
 export default AuthScreen;

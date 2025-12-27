@@ -8,7 +8,12 @@ import {
   signInWithCredential,
   onAuthStateChanged,
   signOut,
-  deleteUser as firebaseDeleteUser
+  deleteUser as firebaseDeleteUser,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  signInWithPhoneNumber,
+  RecaptchaVerifier
 } from 'firebase/auth';
 import * as Google from 'expo-auth-session/providers/google';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
@@ -32,6 +37,10 @@ const defaultUserContext = {
   loading: true,
   login: () => { },
   googleLogin: () => { },
+  emailLogin: () => { },
+  emailSignup: () => { },
+  phoneLogin: () => { },
+  verifyPhoneCode: () => { },
   logout: () => { },
   upgradeToPro: () => { },
   restorePurchases: () => { },
@@ -49,7 +58,11 @@ export const UserProvider = ({ children }) => {
     iosClientId: Config.GOOGLE_CLIENT_ID_IOS,
     androidClientId: Config.GOOGLE_CLIENT_ID_ANDROID,
     webClientId: Config.GOOGLE_WEB_CLIENT_ID,
+    // Add redirectUri explicitly for standalone apps if needed
+    // redirectUri: makeRedirectUri({ scheme: 'onyx-habit-tracker' }),
   });
+
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -85,9 +98,15 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     if (response?.type === 'success') {
-      const { id_token } = response.params;
-      const credential = GoogleAuthProvider.credential(id_token);
-      signInWithCredential(auth, credential);
+      const { id_token, access_token } = response.params;
+      // Use id_token if available (better for Firebase), fallback to access_token
+      const credential = GoogleAuthProvider.credential(id_token || access_token);
+      signInWithCredential(auth, credential).catch(err => {
+        console.error('Firebase Google Auth Error:', err);
+      });
+    } else if (response?.type === 'error') {
+      console.error('Google Login Error:', response.error);
+      console.error('Response Details:', response);
     }
   }, [response]);
 
@@ -144,6 +163,55 @@ export const UserProvider = ({ children }) => {
 
   const googleLogin = () => {
     promptAsync();
+  };
+
+  const emailLogin = async (email, password) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  };
+
+  const emailSignup = async (email, password, name) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(userCredential.user, { displayName: name });
+      const userData = {
+        name,
+        email,
+        id: userCredential.user.uid,
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'users', userCredential.user.uid), userData);
+      setUser(userData);
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  };
+
+  const phoneLogin = async (phoneNumber, recaptchaVerifier) => {
+    try {
+      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+      setConfirm(confirmation);
+      return { success: true };
+    } catch (e) {
+      console.error('Phone Login Error:', e);
+      return { success: false, error: e.message };
+    }
+  };
+
+  const verifyPhoneCode = async (code) => {
+    try {
+      if (!confirm) throw new Error('No confirmation object');
+      await confirm.confirm(code);
+      return { success: true };
+    } catch (e) {
+      console.error('Verify Code Error:', e);
+      return { success: false, error: e.message };
+    }
   };
 
   const logout = async () => {
@@ -237,6 +305,10 @@ export const UserProvider = ({ children }) => {
       isPro,
       login,
       googleLogin,
+      emailLogin,
+      emailSignup,
+      phoneLogin,
+      verifyPhoneCode,
       logout,
       upgradeToPro,
       restorePurchases,
