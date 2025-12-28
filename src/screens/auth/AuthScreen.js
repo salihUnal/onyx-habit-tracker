@@ -57,8 +57,10 @@ const AuthScreen = () => {
     if (method === 'google') {
       googleLogin();
     } else if (method === 'email') {
+      setIsSignup(false);
       setEmailModalVisible(true);
     } else if (method === 'phone') {
+      setIsCodeSent(false);
       setPhoneModalVisible(true);
     } else {
       Alert.alert(t('comingSoon') || 'Coming Soon');
@@ -224,7 +226,7 @@ const AuthScreen = () => {
         <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-              {isSignup ? t('signupWithEmail') : t('continueWithEmail')}
+              {isSignup ? t('signupWithEmail') : t('loginWithEmail')}
             </Text>
 
             <View style={styles.inputContainer}>
@@ -294,7 +296,7 @@ const AuthScreen = () => {
         <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-              {isCodeSent ? (t('verifyCode') || 'Verify Code') : (t('phoneLogin') || 'Phone Login')}
+              {isCodeSent ? t('verifyCode') : t('loginWithPhone')}
             </Text>
 
             <View style={styles.inputContainer}>

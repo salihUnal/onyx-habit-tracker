@@ -16,8 +16,13 @@ import {
   RecaptchaVerifier
 } from 'firebase/auth';
 import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { NativeModules } from 'react-native';
+import Constants from 'expo-constants';
+
+WebBrowser.maybeCompleteAuthSession();
 
 let Purchases;
 try {
@@ -54,13 +59,26 @@ export const UserProvider = ({ children }) => {
   const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Expo Go ve APK ayrımını yaparak Google'a giden redirect_uri'yi manuel olarak yönetiyoruz
+  const isExpoGo = Constants.appOwnership === 'expo';
+  const redirectUri = isExpoGo
+    ? 'https://auth.expo.io/@melezprens1989/onyx-habit-tracker'
+    : makeRedirectUri({ scheme: 'onyx-habit-tracker' });
+
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: Config.GOOGLE_CLIENT_ID_IOS,
     androidClientId: Config.GOOGLE_CLIENT_ID_ANDROID,
     webClientId: Config.GOOGLE_WEB_CLIENT_ID,
-    // Add redirectUri explicitly for standalone apps if needed
-    // redirectUri: makeRedirectUri({ scheme: 'onyx-habit-tracker' }),
+    responseType: 'id_token',
+    redirectUri: redirectUri,
   });
+
+  useEffect(() => {
+    if (isExpoGo) {
+      console.log('🛠 Auth Environment: Expo Go');
+      console.log('🔗 Forcing Redirect URI:', redirectUri);
+    }
+  }, []);
 
   const [confirm, setConfirm] = useState(null);
 

@@ -22,8 +22,8 @@ The project is in the "Transition from Demo to Production" phase. While the visu
 ### High Priority
 
 - [x] Fix Google Login logging (added detailed error logs).
-- [x] Implement Email Login and Signup.
-- [x] Implement robust Phone Authentication.
+- [ ] Implement Email Login and Signup.
+- [ ] Implement robust Phone Authentication.
 - [ ] Fully integrate RevenueCat for real In-App Purchases (Restore Purchase feature needed).
 - [ ] Implement real AdMob ads (Rewarded/Banner).
 - [ ] Add Cloud Sync via Firebase for data persistence across devices.
