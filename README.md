@@ -1,75 +1,59 @@
-# Onyx: Habit Tracker & Focus
+# 💎 Onyx: Habit Tracker & Focus
 
-Onyx is a premium, gamified habit tracker and focus timer app designed with a "Dark Mode / Neon" aesthetic. It focuses on building streaks, social sharing, and deep work sessions.
+<p align="center">
+  <img src="https://capsule-render.vercel.app/render?type=soft&color=00f2ff&height=300&section=header&text=ONYX&fontSize=90" />
+</p>
 
-## 📱 Features
+<p align="center">
+  <img src="https://img.shields.io/badge/Aesthetic-Neon_Dark-blueviolet?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Platform-iOS_%2F_Android-lightgrey?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Framework-React_Native-61DAFB?style=for-the-badge" />
+</p>
 
-### ✅ Completed
-- **Authentication & Onboarding:**
-  - Modern, animated landing screen.
-  - Mock login options (Google, Email, Phone).
-  - "Cool" UI with gradients and blur effects.
-- **Dashboard (Home):**
-  - Daily progress tracking with visual bars.
-  - Habit management (Add, Edit, Delete, Complete).
-  - **Monetization:** Free users limited to 5 habits (expandable via Ads).
-  - Confetti and animations for task completion.
-- **Focus Mode:**
-  - Pomodoro timer (customizable).
-  - Distraction-free experience for Pro users.
-  - Banner ads for free users.
-- **Social "Flex" Mode:**
-  - Share habits to Instagram Stories (9:16 format).
-  - Dynamic backgrounds based on habit color.
-  - **Watermark:** Free users have a watermark, removable via Paywall.
-- **Settings & Customization:**
-  - Language support (English, Turkish, Spanish, German, Italian, Russian, Chinese).
-  - Dark/Light mode toggle.
-  - Profile management.
-- **Paywall & Monetization:**
-  - Premium subscription screen.
-  - **Rewarded Ads:** Watch ads to earn extra habit slots.
-  - Mock Ad system with random duration timers.
+---
 
-### 🚧 Roadmap / To-Do
-The following features from the original requirements are pending or can be improved:
+## 📱 Proje Hakkında
 
-1.  **Streak Repair (Rewarded Ad):**
-    - **Requirement:** Allow users to "repair" a broken streak by watching an ad.
-    - **Current Status:** Not implemented. Logic needs to be added to `HabitContext` to handle streak restoration and UI in `HomeScreen` to show the option when a streak is lost.
+**Onyx**, premium ve oyunlaştırılmış bir alışkanlık takip ve odaklanma uygulamasıdır. "Dark Mode / Neon" estetiğiyle tasarlanan uygulama, kullanıcıların alışkanlıklarını sürdürülebilir kılmaya, derin çalışma (deep work) seanslarını yönetmeye ve ilerlemelerini şık bir şekilde paylaşmaya odaklanır.
 
-2.  **Widget Customization Store:**
-    - **Requirement:** A dedicated screen to customize Home Screen Widgets (Free vs Pro).
-    - **Current Status:** `WidgetStoreScreen.js` exists but needs verification of full functionality (Free vs Neon Cyberpunk styles).
+## ✨ Öne Çıkan Özellikler
 
-3.  **Real Backend & Monetization Integration:**
-    - **Requirement:** RevenueCat (IAP) and AdMob.
-    - **Current Status:** Currently using Mock implementations for demonstration purposes. Needs replacement with real SDKs for production.
+### ✅ Alışkanlık Yönetimi
 
-4.  **Push Notifications:**
-    - **Requirement:** Daily reminders.
-    - **Current Status:** Basic scheduling is implemented, but more granular control (per habit reminders) could be enhanced.
+- **📊 Görsel İlerleme:** Günlük ilerleme barları ve alışkanlık kartları.
+- **🔥 Streak Sistemi:** Alışkanlıklarınızı bozmadan devam ettiğiniz gün sayısı takibi.
+- **🎉 Animasyonlar:** Görev tamamlandığında konfeti efektleri ve mikro animasyonlar.
 
-## 🛠 Setup & Run
+### ⏱️ Odaklanma (Focus Mode)
 
-1.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
+- **⏲️ Pomodoro Sayacı:** Özelleştirilebilir çalışma ve mola süreleri.
+- **🚫 Distraction-Free:** Pro kullanıcılar için tamamen reklamsız ve odaklanmaya yönelik arayüz.
 
-2.  **Start the App:**
-    ```bash
-    npx expo start
-    ```
+### 📸 Social "Flex" Mode
 
-3.  **Run on Device/Simulator:**
-    - Scan the QR code with Expo Go (Android/iOS).
-    - Press `a` for Android Emulator or `i` for iOS Simulator.
+- **🤳 Instagram Share:** Alışkanlıklarınızı ve streak'lerinizi 9:16 formatında Instagram Stories'de paylaşın.
+- **🎨 Dinamik Arka Planlar:** Alışkanlığın rengine göre otomatik değişen tasarımlar.
 
-## 🌍 Localization
-The app supports 7 languages. Translations are managed in `src/i18n/translations.js`.
+## 🛠️ Teknik Stack
 
-## 🎨 Design System
-- **Colors:** Defined in `src/context/ThemeContext.js`.
-- **Icons:** Using `lucide-react-native`.
-- **Fonts:** System fonts with bold/modern styling.
+- **Frontend:** React Native (Expo)
+- **İkonlar:** Lucide React Native
+- **Tema:** Custom Neon Dark Design System
+- **Yerelleştirme:** 7 farklı dil desteği (TR, EN, ES, DE, IT, RU, CN)
+
+## 🚀 Kurulum ve Çalıştırma
+
+1. **Bağımlılıkları Yükleyin:**
+
+   ```bash
+   npm install
+   ```
+
+2. **Uygulamayı Başlatın:**
+   ```bash
+   npx expo start
+   ```
+
+---
+
+<p align="center">Built for believers. ✨ Developed by <a href="https://github.com/salihUnal">Salih Ünal</a></p>
