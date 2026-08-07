@@ -236,7 +236,19 @@ export const UserProvider = ({ children }) => {
     try {
       await signOut(auth);
       setUser(null);
-      await AsyncStorage.removeItem('user');
+      const keysToClear = [
+        'user',
+        'userProfile',
+        'isPro',
+        'habits',
+        'breakHabits',
+        'extraHabits',
+        'focusHistory',
+        'focusSessionsToday',
+        'lastFocusDate',
+        'adRewardExpiry'
+      ];
+      await AsyncStorage.multiRemove(keysToClear);
     } catch (e) {
       console.error('Logout error:', e);
     }
@@ -291,10 +303,24 @@ export const UserProvider = ({ children }) => {
     try {
       const currentUser = auth.currentUser;
       if (currentUser) {
+        // Alışkanlıklar bulut verisini de sil
+        await deleteDoc(doc(db, 'habits', currentUser.uid));
         await deleteDoc(doc(db, 'users', currentUser.uid));
         await firebaseDeleteUser(currentUser);
       }
-      await AsyncStorage.multiRemove(['user', 'userProfile', 'isPro', 'habits', 'breakHabits', 'extraHabits']);
+      const keysToClear = [
+        'user',
+        'userProfile',
+        'isPro',
+        'habits',
+        'breakHabits',
+        'extraHabits',
+        'focusHistory',
+        'focusSessionsToday',
+        'lastFocusDate',
+        'adRewardExpiry'
+      ];
+      await AsyncStorage.multiRemove(keysToClear);
       setUser(null);
       setIsPro(false);
       return { success: true };

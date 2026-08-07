@@ -16,7 +16,7 @@
 ## Development Setup
 
 - **Package Manager:** npm
-- **Environment:** Expo managed workflow.
+- **Environment:** Expo managed workflow with Development Builds (`expo-dev-client`) instead of Expo Go, due to custom native modules (RevenueCat, AdMob).
 - **Target Platforms:** Android (Primary), iOS (Planned).
 
 ## Technical Constraints & Decisions

@@ -59,7 +59,7 @@ const PaywallScreen = ({ navigation, route }) => {
       }
       return;
     }
-    AdManager.loadRewardedAd(
+    AdManager.showRewarded(
       async (reward) => {
         giveReward();
       },
@@ -198,17 +198,33 @@ const PaywallScreen = ({ navigation, route }) => {
           ))}
 
           {!offerings && (
-            <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.9}>
-              <LinearGradient
-                colors={[theme.colors.primary, theme.colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.purchaseButton}
-              >
-                <Text style={styles.purchaseButtonText}>{t('unlockLifetime') || 'Ömür Boyu Erişimi Aç'}</Text>
-                <Text style={styles.priceText}>$29.99 / {t('lifetime') || 'Ömür Boyu'}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            <View style={{ gap: 4 }}>
+              <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.9}>
+                <View style={[styles.purchaseButton, { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, shadowOpacity: 0.1, elevation: 2 }]}>
+                  <Text style={[styles.purchaseButtonText, { color: theme.colors.text }]}>{t('monthlyPro') || 'Aylık Pro'}</Text>
+                  <Text style={[styles.priceText, { color: theme.colors.textSecondary }]}>$2.99 / {t('monthly') || 'Aylık'}</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.9}>
+                <View style={[styles.purchaseButton, { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, shadowOpacity: 0.1, elevation: 2 }]}>
+                  <Text style={[styles.purchaseButtonText, { color: theme.colors.text }]}>{t('annualPro') || 'Yıllık Pro'}</Text>
+                  <Text style={[styles.priceText, { color: theme.colors.textSecondary }]}>$19.99 / {t('annual') || 'Yıllık'}</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.9}>
+                <LinearGradient
+                  colors={[theme.colors.primary, theme.colors.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.purchaseButton}
+                >
+                  <Text style={styles.purchaseButtonText}>{t('unlockLifetime') || 'Ömür Boyu Pro'}</Text>
+                  <Text style={styles.priceText}>$29.99 / {t('lifetime') || 'Ömür Boyu'}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           )}
 
           <TouchableOpacity onPress={handleRestore}>

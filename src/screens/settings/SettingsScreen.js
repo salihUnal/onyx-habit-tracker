@@ -190,7 +190,11 @@ const SettingsScreen = ({ navigation }) => {
 
     const handleRestore = async () => {
         const success = await userContext.restorePurchases();
-        if (success) Alert.alert(t('success'), t('restoreSuccess') || 'Satın alımlar başarıyla geri yüklendi!');
+        if (success) {
+            Alert.alert(t('success'), t('restoreSuccess') || 'Satın alımlar başarıyla geri yüklendi!');
+        } else {
+            Alert.alert(t('error') || 'Hata', t('restoreFailed') || 'Geri yüklenecek satın alım bulunamadı.');
+        }
     };
 
     const handleDeleteAccount = () => {

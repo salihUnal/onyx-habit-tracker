@@ -39,8 +39,8 @@ const MainTabs = () => {
           tabChangeCount.current += 1;
           // Show interstitial ad every 5 tab changes
           if (tabChangeCount.current >= 5) {
-            if (AdManager && typeof AdManager.loadInterstitialAd === 'function') {
-              AdManager.loadInterstitialAd();
+            if (AdManager && typeof AdManager.showInterstitial === 'function') {
+              AdManager.showInterstitial();
             }
             tabChangeCount.current = 0;
           }
@@ -138,7 +138,9 @@ const AppNavigator = () => {
         {!user ? (
           <>
             {!hasSeenOnboarding && (
-              <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+              <Stack.Screen name="Onboarding">
+                {props => <OnboardingScreen {...props} onComplete={() => setHasSeenOnboarding(true)} />}
+              </Stack.Screen>
             )}
             <Stack.Screen name="Auth" component={AuthScreen} />
           </>

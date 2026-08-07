@@ -40,6 +40,47 @@ export const HabitProvider = ({ children }) => {
     }
   }, [user?.id]);
 
+  const mergeHabitData = (localItems, cloudItems) => {
+    const merged = [...localItems];
+    cloudItems.forEach(cloudItem => {
+      const localIndex = merged.findIndex(item => item.id === cloudItem.id);
+      if (localIndex > -1) {
+        const localItem = merged[localIndex];
+        const mergedCompletedDates = [...new Set([...(localItem.completedDates || []), ...(cloudItem.completedDates || [])])];
+        merged[localIndex] = {
+          ...localItem,
+          ...cloudItem,
+          completedDates: mergedCompletedDates,
+          streak: calculateStreak(mergedCompletedDates)
+        };
+      } else {
+        merged.push(cloudItem);
+      }
+    });
+    return merged;
+  };
+
+  const mergeBreakHabitsData = (localItems, cloudItems) => {
+    const merged = [...localItems];
+    cloudItems.forEach(cloudItem => {
+      const localIndex = merged.findIndex(item => item.id === cloudItem.id);
+      if (localIndex > -1) {
+        const localItem = merged[localIndex];
+        const newerLastBreakDate = (localItem.lastBreakDate && cloudItem.lastBreakDate)
+          ? (new Date(localItem.lastBreakDate) > new Date(cloudItem.lastBreakDate) ? localItem.lastBreakDate : cloudItem.lastBreakDate)
+          : (localItem.lastBreakDate || cloudItem.lastBreakDate);
+        merged[localIndex] = {
+          ...localItem,
+          ...cloudItem,
+          lastBreakDate: newerLastBreakDate
+        };
+      } else {
+        merged.push(cloudItem);
+      }
+    });
+    return merged;
+  };
+
   const loadFromCloud = async () => {
     if (!auth.currentUser) return;
     try {
@@ -47,8 +88,23 @@ export const HabitProvider = ({ children }) => {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.habits) saveHabits(data.habits, false);
-        if (data.breakHabits) saveBreakHabits(data.breakHabits, false);
+        
+        const localHabitsRaw = await AsyncStorage.getItem('habits');
+        const localBreakHabitsRaw = await AsyncStorage.getItem('breakHabits');
+        
+        const localHabits = localHabitsRaw ? JSON.parse(localHabitsRaw) : [];
+        const localBreakHabits = localBreakHabitsRaw ? JSON.parse(localBreakHabitsRaw) : [];
+        
+        const cloudHabits = data.habits || [];
+        const cloudBreakHabits = data.breakHabits || [];
+        
+        const mergedHabits = mergeHabitData(localHabits, cloudHabits);
+        const mergedBreakHabits = mergeBreakHabitsData(localBreakHabits, cloudBreakHabits);
+        
+        await saveHabits(mergedHabits, true);
+        await saveBreakHabits(mergedBreakHabits, true);
+      } else {
+        await syncWithCloud(habits, breakHabits);
       }
     } catch (e) {
       console.error('Failed to load from cloud', e);

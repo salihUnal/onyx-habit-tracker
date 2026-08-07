@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, ImageBackground } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
@@ -9,6 +9,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Globe, Zap } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { TextInput, ActivityIndicator, Alert } from 'react-native';
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
+import Config from '../../config/Config';
 
 const AuthScreen = () => {
   const theme = useTheme();
@@ -26,6 +28,7 @@ const AuthScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
+  const recaptchaVerifier = useRef(null);
 
   const languages = [
     { code: 'English', label: 'English' },
@@ -73,9 +76,7 @@ const AuthScreen = () => {
       return;
     }
     setAuthLoading(true);
-    // Note: In production, you need a RecaptchaVerifier. 
-    // This is a placeholder for where that would be passed.
-    const result = await phoneLogin(phoneNumber, null);
+    const result = await phoneLogin(phoneNumber, recaptchaVerifier.current);
     setAuthLoading(false);
     if (result.success) {
       setIsCodeSent(true);
@@ -347,6 +348,12 @@ const AuthScreen = () => {
           </View>
         </BlurView>
       </Modal>
+
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={Config.FIREBASE_CONFIG}
+        attemptInvisibleVerification={true}
+      />
     </View>
   );
 };

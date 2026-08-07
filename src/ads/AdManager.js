@@ -1,24 +1,24 @@
 import { Platform } from 'react-native';
 import Config from '../config/Config';
 
-let MobileAds, MaxAdContentRating, TestIds, RewardedAd, RewardedAdEventType, InterstitialAd, AdEventType, AppOpenAd;
-try {
-    const AdMob = require('react-native-google-mobile-ads');
-    MobileAds = AdMob.default || AdMob;
-    MaxAdContentRating = AdMob.MaxAdContentRating;
-    TestIds = AdMob.TestIds;
-    RewardedAd = AdMob.RewardedAd;
-    RewardedAdEventType = AdMob.RewardedAdEventType;
-    InterstitialAd = AdMob.InterstitialAd;
-    AdEventType = AdMob.AdEventType;
-    AppOpenAd = AdMob.AppOpenAd;
-} catch (e) {
-    console.log('AdMob binary modules not found');
-}
+import mobileAds, {
+    MaxAdContentRating,
+    TestIds,
+    RewardedAd,
+    RewardedAdEventType,
+    InterstitialAd,
+    AdEventType,
+    AppOpenAd
+} from 'react-native-google-mobile-ads';
+
+const MobileAds = mobileAds;
+
 
 class AdManager {
     static instance = null;
     isInitialized = false;
+    interstitialAd = null;
+    rewardedAd = null;
 
     static getInstance() {
         if (!AdManager.instance) {
@@ -29,82 +29,83 @@ class AdManager {
 
     async init() {
         if (this.isInitialized || !MobileAds) return;
-
         try {
             await MobileAds().initialize();
-            await MobileAds().setRequestConfiguration({
-                maxAdContentRating: MaxAdContentRating.G,
-                tagForChildDirectedTreatment: true,
-                tagForUnderAgeOfConsent: true,
-            });
+            if (MaxAdContentRating) {
+                await MobileAds().setRequestConfiguration({
+                    maxAdContentRating: MaxAdContentRating.G,
+                    tagForChildDirectedTreatment: true,
+                    tagForUnderAgeOfConsent: true,
+                });
+            }
             this.isInitialized = true;
-            console.log('AdMob Initialized');
-
-            // Pre-load App Open Ad
-            this.loadAppOpenAd();
-        } catch (error) {
-            console.error('AdMob Initialization Error:', error);
+            this.preloadInterstitial();
+            this.preloadRewarded();
+        } catch (e) {
+            console.error('AdMob Init Error:', e);
         }
     }
 
-    // Rewarded Ad
-    loadRewardedAd(onEarnedReward, onClosed) {
-        if (!RewardedAd) return;
-        const adUnitId = __DEV__ ? TestIds.REWARDED : Config.ADMOB_REWARDED_ID;
-
-        const rewarded = RewardedAd.createForAdUnitId(adUnitId, {
-            requestNonPersonalizedAdsOnly: true,
-        });
-
-        rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => {
-            onEarnedReward(reward);
-        });
-
-        rewarded.addAdEventListener(RewardedAdEventType.LOADED, () => {
-            rewarded.show();
-        });
-
-        rewarded.addAdEventListener(RewardedAdEventType.CLOSED, () => {
-            if (onClosed) onClosed();
-        });
-
-        rewarded.load();
-    }
-
-    // Interstitial Ad (Geçiş Reklamı)
-    loadInterstitialAd(onClosed) {
+    preloadInterstitial() {
         if (!InterstitialAd) return;
         const adUnitId = __DEV__ ? TestIds.INTERSTITIAL : Config.ADMOB_INTERSTITIAL_ID;
-
-        const interstitial = InterstitialAd.createForAdUnitId(adUnitId, {
+        this.interstitialAd = InterstitialAd.createForAdRequest(adUnitId, {
             requestNonPersonalizedAdsOnly: true,
         });
-
-        interstitial.addAdEventListener(AdEventType.LOADED, () => {
-            interstitial.show();
+        this.interstitialAd.addAdEventListener(AdEventType.LOADED, () => {
+            console.log('Interstitial Loaded');
         });
-
-        interstitial.addAdEventListener(AdEventType.CLOSED, () => {
-            if (onClosed) onClosed();
+        this.interstitialAd.addAdEventListener(AdEventType.CLOSED, () => {
+            this.preloadInterstitial(); // Bir sonraki geçiş için tekrar yükle
         });
-
-        interstitial.load();
+        this.interstitialAd.load();
     }
 
-    // App Open Ad (Uygulama Açılırken)
-    loadAppOpenAd() {
-        if (!AppOpenAd) return;
-        const adUnitId = __DEV__ ? TestIds.APP_OPEN : Config.ADMOB_APP_OPEN_ID;
+    showInterstitial(onClosed) {
+        if (this.interstitialAd && this.interstitialAd.loaded) {
+            if (onClosed) {
+                const sub = this.interstitialAd.addAdEventListener(AdEventType.CLOSED, () => {
+                    sub.remove();
+                    onClosed();
+                });
+            }
+            this.interstitialAd.show();
+        } else {
+            console.log('Interstitial not ready');
+            if (onClosed) onClosed();
+            this.preloadInterstitial();
+        }
+    }
 
-        const appOpenAd = AppOpenAd.createForAdUnitId(adUnitId, {
+    preloadRewarded() {
+        if (!RewardedAd) return;
+        const adUnitId = __DEV__ ? TestIds.REWARDED : Config.ADMOB_REWARDED_ID;
+        this.rewardedAd = RewardedAd.createForAdRequest(adUnitId, {
             requestNonPersonalizedAdsOnly: true,
         });
-
-        appOpenAd.addAdEventListener(AdEventType.LOADED, () => {
-            appOpenAd.show();
+        this.rewardedAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
+            console.log('Rewarded Loaded');
         });
+        this.rewardedAd.load();
+    }
 
-        appOpenAd.load();
+    showRewarded(onEarnedReward, onClosed) {
+        if (this.rewardedAd && this.rewardedAd.loaded) {
+            const earnedSub = this.rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => {
+                onEarnedReward(reward);
+            });
+            const closeSub = this.rewardedAd.addAdEventListener(RewardedAdEventType.CLOSED, () => {
+                earnedSub.remove();
+                closeSub.remove();
+                this.preloadRewarded(); // Yeniden yükle
+                if (onClosed) onClosed();
+            });
+            this.rewardedAd.show();
+        } else {
+            console.log('Rewarded ad not ready');
+            if (onClosed) onClosed();
+            this.preloadRewarded();
+        }
     }
 }
 

@@ -37,7 +37,7 @@ const onboardingData = [
     }
 ];
 
-const OnboardingScreen = ({ navigation }) => {
+const OnboardingScreen = ({ navigation, onComplete }) => {
     const theme = useTheme();
     const { t, language, setLanguage } = useLanguage();
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -56,7 +56,11 @@ const OnboardingScreen = ({ navigation }) => {
             setCurrentIndex(currentIndex + 1);
         } else {
             await AsyncStorage.setItem('hasSeenOnboarding', 'true');
-            navigation.replace('Auth');
+            if (onComplete) {
+                onComplete();
+            } else {
+                navigation.replace('Auth');
+            }
         }
     };
 

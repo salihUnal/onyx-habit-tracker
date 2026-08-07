@@ -8,14 +8,15 @@ The primary focus is initializing the project documentation (Memory Bank) and pr
 
 - Implemented Email Login and Signup functionality.
 - Implemented Phone Authentication structure (Send Code/Verify Code) in `UserContext.js` and `AuthScreen.js`.
+- Created `npm run android-win` as a permanent fix for local development build issues, and updated it to use Android Studio's JDK (JBR) to resolve Java 25 SSL certificate validation errors.
+- Fixed AdMob initialization crash by migrating `AdManager.js` to ES6 imports for `react-native-google-mobile-ads`.
 - Improved Google Login error logging and robustness.
-- Identified potential mismatch in `Config.js` Google Client IDs.
 
 ## Next Steps
 
-1. **Fix Google Client IDs:** Verify and update Android/iOS/Web Client IDs in `Config.js`.
-2. **Production SHA-1:** ensure the production SHA-1 is added to Firebase/Google Cloud Console.
-3. **Phone Auth Verification:** Install `expo-firebase-recaptcha` to make Phone Auth fully functional in production.
+1. **Fix Google Login (Android APK):** Update Android Client ID in `Config.js` and verify SHA-1 in Firebase.
+2. **Production SHA-1:** Add SHA-1 certificates (Debug and Play Store) to Firebase/Google Console.
+3. **Phone Auth Verification:** Install `expo-firebase-recaptcha` to make Phone Auth functional.
 4. **Legal Compliance:** Add Privacy Policy and Account Deletion features.
 
 ## Active Decisions and Considerations

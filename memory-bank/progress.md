@@ -12,18 +12,16 @@
 
 The project is in the "Transition from Demo to Production" phase. While the visual and basic functionality exists, several critical systems need to be made production-ready.
 
-## Known Issues
-
 - **Google Login Bug:** Error 400: invalid_request in Android APK builds.
-- **Mock Features:** Some features like "Pro" upgrade and "Ads" are still using mock logic instead of production endpoints.
+- **Android Build Fix (Windows):** Resolved path encoding issues for users with non-ASCII characters/spaces in their Windows home directory by using a dedicated ASCII-safe Gradle cache and SDK shortcuts.
 
 ## What's Left to Build
 
 ### High Priority
 
 - [x] Fix Google Login logging (added detailed error logs).
-- [ ] Implement Email Login and Signup.
-- [ ] Implement robust Phone Authentication.
+- [x] Implement Email Login and Signup.
+- [/] Implement robust Phone Authentication (structure ready, expo-firebase-recaptcha dependencies resolved).
 - [ ] Fully integrate RevenueCat for real In-App Purchases (Restore Purchase feature needed).
 - [ ] Implement real AdMob ads (Rewarded/Banner).
 - [ ] Add Cloud Sync via Firebase for data persistence across devices.
