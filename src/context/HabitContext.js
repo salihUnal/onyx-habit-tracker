@@ -107,7 +107,11 @@ export const HabitProvider = ({ children }) => {
         await syncWithCloud(habits, breakHabits);
       }
     } catch (e) {
-      console.error('Failed to load from cloud', e);
+      if (e?.code === 'permission-denied' || e?.message?.includes('insufficient permissions') || e?.message?.includes('Missing or insufficient permissions')) {
+        console.warn('⚠️ Cloud sync: Firestore security rules need updating in Firebase Console. Using local habits.');
+      } else {
+        console.error('Failed to load from cloud', e);
+      }
     }
   };
 
@@ -120,7 +124,11 @@ export const HabitProvider = ({ children }) => {
         lastUpdated: new Date().toISOString()
       }, { merge: true });
     } catch (e) {
-      console.error('Failed to sync with cloud', e);
+      if (e?.code === 'permission-denied' || e?.message?.includes('insufficient permissions') || e?.message?.includes('Missing or insufficient permissions')) {
+        console.warn('⚠️ Cloud sync: Firestore security rules need updating. Habits saved locally.');
+      } else {
+        console.error('Failed to sync with cloud', e);
+      }
     }
   };
 

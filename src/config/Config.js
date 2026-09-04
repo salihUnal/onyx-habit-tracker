@@ -25,6 +25,11 @@ const Config = {
     GOOGLE_CLIENT_ID_IOS: '405005586790-nl62ie6gp693d82t4s32qsktfq7ppcn4.apps.googleusercontent.com',
     GOOGLE_CLIENT_ID_ANDROID: '405005586790-nl62ie6gp693d82t4s32qsktfq7ppcn4.apps.googleusercontent.com',
     GOOGLE_WEB_CLIENT_ID: '405005586790-d9ccn5oeriqbvee15beth3rms8lq34ns.apps.googleusercontent.com',
+
+    // Legal & Policy URLs
+    PRIVACY_POLICY_URL: 'https://github.com/salihUnal/onyx-habit-tracker/blob/main/PRIVACY_POLICY.md',
+    TERMS_OF_SERVICE_URL: 'https://github.com/salihUnal/onyx-habit-tracker/blob/main/TERMS_OF_SERVICE.md',
+    APPLE_EULA_URL: 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
 };
 
 export default Config;

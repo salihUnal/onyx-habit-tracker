@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, ImageBackground } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
@@ -9,12 +9,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Globe, Zap } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { TextInput, ActivityIndicator, Alert } from 'react-native';
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
-import Config from '../../config/Config';
+
 
 const AuthScreen = () => {
   const theme = useTheme();
-  const { login, googleLogin, emailLogin, emailSignup, phoneLogin, verifyPhoneCode } = useUser();
+  const { login, googleLogin, emailLogin, emailSignup, resetPassword } = useUser();
   const { t, language, setLanguage } = useLanguage();
   const [isReturningUser, setIsReturningUser] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
@@ -24,11 +23,10 @@ const AuthScreen = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
-  const [phoneModalVisible, setPhoneModalVisible] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [isCodeSent, setIsCodeSent] = useState(false);
-  const recaptchaVerifier = useRef(null);
+  const [forgotPasswordModalVisible, setForgotPasswordModalVisible] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+
 
   const languages = [
     { code: 'English', label: 'English' },
@@ -62,64 +60,217 @@ const AuthScreen = () => {
     } else if (method === 'email') {
       setIsSignup(false);
       setEmailModalVisible(true);
-    } else if (method === 'phone') {
-      setIsCodeSent(false);
-      setPhoneModalVisible(true);
     } else {
       Alert.alert(t('comingSoon') || 'Coming Soon');
     }
   };
 
-  const handlePhoneLogin = async () => {
-    if (!phoneNumber) {
-      Alert.alert(t('error') || 'Error', t('enterPhoneNumber') || 'Please enter phone number');
+  const openForgotPasswordModal = () => {
+    setResetEmail(email ? email.trim() : '');
+    setForgotPasswordModalVisible(true);
+  };
+
+  const handleSendResetEmail = async () => {
+    const trimmed = resetEmail.trim();
+    if (!trimmed) {
+      Alert.alert(t('warning') || 'Uyarı', t('enterEmailForReset') || 'Lütfen e-posta adresinizi giriniz.');
       return;
     }
-    setAuthLoading(true);
-    const result = await phoneLogin(phoneNumber, recaptchaVerifier.current);
-    setAuthLoading(false);
-    if (result.success) {
-      setIsCodeSent(true);
+
+    setResetLoading(true);
+    const res = await resetPassword(trimmed);
+    setResetLoading(false);
+
+    if (res.success) {
+      setForgotPasswordModalVisible(false);
+      Alert.alert(
+        t('emailSent') || 'Bağlantı Gönderildi',
+        `${trimmed}\n\n${t('resetEmailSentDesc') || 'Şifre belirleme/sıfırlama bağlantısı e-posta adresinize gönderildi. Gelen bağlantıya tıklayarak yeni şifrenizi oluşturabilirsiniz.'}\n\n${t('checkSpamNotice') || 'Not: E-posta birkaç dakika içinde gelmezse lütfen Spam/Gereksiz klasörünü kontrol ediniz.'}`,
+        [{ text: t('ok') || 'Tamam' }]
+      );
     } else {
-      Alert.alert(t('error') || 'Error', result.error);
+      if (res.code === 'auth/operation-not-allowed' || res.error?.includes('operation-not-allowed')) {
+        Alert.alert(
+          t('operationNotAllowedTitle') || 'E-posta Sağlayıcısı Kapalı',
+          'Firebase Konsolunda "Email/Password" sağlayıcısı henüz aktif edilmemiştir.\n\nSıfırlama bağlantısı gönderebilmek için lütfen Firebase Konsolu -> Authentication -> Sign-in method sekmesinden "Email/Password" seçeneğini etkinleştiriniz.',
+          [{ text: t('ok') || 'Tamam' }]
+        );
+      } else if (res.code === 'auth/user-not-found' || res.error?.includes('user-not-found')) {
+        Alert.alert(
+          t('accountNotFoundTitle') || 'Hesap Bulunamadı',
+          t('accountNotFoundDesc') || 'Bu e-posta adresine ait bir hesap bulunamadı.'
+        );
+      } else if (res.code === 'auth/invalid-email' || res.error?.includes('invalid-email')) {
+        Alert.alert(
+          t('invalidEmailTitle') || 'Geçersiz E-posta',
+          t('invalidEmail') || 'Lütfen geçerli bir e-posta adresi giriniz.'
+        );
+      } else {
+        Alert.alert(t('error') || 'Hata', res.error || 'E-posta gönderilemedi.');
+      }
     }
   };
 
-  const handleVerifyCode = async () => {
-    if (!verificationCode) {
-      Alert.alert(t('error') || 'Error', t('enterCode') || 'Please enter verification code');
+
+
+  const handleAuthError = (result) => {
+    const code = result?.code || '';
+    const rawError = result?.error || '';
+
+    // 1. E-posta Zaten Kullanımda (Kayıt ekranında)
+    if (code === 'auth/email-already-in-use' || rawError.includes('email-already-in-use')) {
+      Alert.alert(
+        t('accountAlreadyExists') || 'Hesap Zaten Mevcut',
+        t('emailAlreadyInUse') || 'Bu e-posta adresiyle kayıtlı bir hesap zaten var. Giriş yapmak ister misiniz?',
+        [
+          {
+            text: t('cancel') || 'İptal',
+            style: 'cancel',
+          },
+          {
+            text: t('login') || 'Giriş Yap',
+            onPress: () => {
+              setIsSignup(false);
+            },
+          },
+        ]
+      );
       return;
     }
-    setAuthLoading(true);
-    const result = await verifyPhoneCode(verificationCode);
-    setAuthLoading(false);
-    if (result.success) {
-      setPhoneModalVisible(false);
-      setIsCodeSent(false);
-    } else {
-      Alert.alert(t('error') || 'Error', result.error);
+
+    // 2. Yanlış Şifre / Kimlik Doğrulama Hatası
+    if (
+      code === 'auth/wrong-password' ||
+      code === 'auth/invalid-credential' ||
+      rawError.includes('wrong-password') ||
+      rawError.includes('invalid-credential')
+    ) {
+      Alert.alert(
+        t('loginFailed') || 'Giriş Yapılamadı',
+        t('wrongPasswordDesc') || 'Girdiğiniz şifre hatalı. Eğer bu hesabı Google ile açtıysanız henüz bir şifreniz olmayabilir. Google ile giriş yapabilir veya şifre belirleme bağlantısı isteyebilirsiniz.',
+        [
+          { text: t('retry') || 'Tekrar Dene', style: 'cancel' },
+          {
+            text: t('sendResetLink') || 'Şifre Belirle / Sıfırla',
+            onPress: () => openForgotPasswordModal(),
+          },
+          {
+            text: t('continueWithGoogle') || 'Google ile Giriş Yap',
+            onPress: () => {
+              setEmailModalVisible(false);
+              handleLogin('google');
+            },
+          },
+        ]
+      );
+      return;
     }
+
+    // 3. E-posta/Şifre Giriş Yöntemi Kapalı veya Google Hesabı (auth/operation-not-allowed)
+    if (code === 'auth/operation-not-allowed' || rawError.includes('operation-not-allowed')) {
+      Alert.alert(
+        t('operationNotAllowedTitle') || 'E-posta ile Giriş Devre Dışı / Google Hesabı',
+        t('operationNotAllowedDesc') || 'Bu hesap Google ile oluşturulmuş olabilir veya Firebase konsolunda E-posta/Şifre sağlayıcısı henüz aktif edilmemiştir. Google ile giriş yapmak ister misiniz?',
+        [
+          { text: t('cancel') || 'İptal', style: 'cancel' },
+          {
+            text: t('continueWithGoogle') || 'Google ile Giriş Yap',
+            onPress: () => {
+              setEmailModalVisible(false);
+              handleLogin('google');
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    // 4. Hesap Bulunamadı
+    if (code === 'auth/user-not-found' || rawError.includes('user-not-found')) {
+      Alert.alert(
+        t('accountNotFoundTitle') || 'Hesap Bulunamadı',
+        t('accountNotFoundDesc') || 'Bu e-posta adresine ait bir hesap bulunamadı. Yeni bir hesap oluşturmak ister misiniz?',
+        [
+          { text: t('cancel') || 'İptal', style: 'cancel' },
+          {
+            text: t('signup') || 'Kayıt Ol',
+            onPress: () => {
+              setIsSignup(true);
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    // 5. Geçersiz E-posta
+    if (code === 'auth/invalid-email' || rawError.includes('invalid-email')) {
+      Alert.alert(
+        t('invalidEmailTitle') || 'Geçersiz E-posta',
+        t('invalidEmail') || 'Lütfen geçerli formatta bir e-posta adresi giriniz.'
+      );
+      return;
+    }
+
+    // 6. Zayıf Şifre
+    if (code === 'auth/weak-password' || rawError.includes('weak-password')) {
+      Alert.alert(
+        t('weakPasswordTitle') || 'Şifre Yetersiz',
+        t('weakPassword') || 'Şifreniz en az 6 karakter olmalıdır.'
+      );
+      return;
+    }
+
+    // 7. Çok Fazla Deneme
+    if (code === 'auth/too-many-requests' || rawError.includes('too-many-requests')) {
+      Alert.alert(
+        t('tooManyRequestsTitle') || 'Çok Fazla Deneme Yapıldı',
+        t('tooManyRequests') || 'Çok fazla başarısız deneme yapıldı. Lütfen biraz bekleyiniz veya şifrenizi sıfırlayınız.',
+        [
+          { text: t('cancel') || 'Tamam', style: 'cancel' },
+          {
+            text: t('sendResetLink') || 'Şifremi Sıfırla',
+            onPress: () => openForgotPasswordModal(),
+          },
+        ]
+      );
+      return;
+    }
+
+    // 8. Ağ Hatası
+    if (code === 'auth/network-request-failed' || rawError.includes('network-request-failed')) {
+      Alert.alert(
+        t('networkErrorTitle') || 'Bağlantı Hatası',
+        t('networkError') || 'Ağ hatası. Lütfen internet bağlantınızı kontrol ediniz.'
+      );
+      return;
+    }
+
+    Alert.alert(t('error') || 'Hata', rawError || 'Bir hata oluştu.');
   };
 
   const handleEmailAuth = async () => {
-    if (!email || !password || (isSignup && !name)) {
-      Alert.alert(t('error') || 'Error', t('fillAllFields') || 'Please fill all fields');
+    const trimmedEmail = email.trim();
+    const trimmedName = name.trim();
+
+    if (!trimmedEmail || !password || (isSignup && !trimmedName)) {
+      Alert.alert(t('warning') || 'Uyarı', t('fillAllFields') || 'Lütfen tüm alanları doldurun');
       return;
     }
 
     setAuthLoading(true);
     let result;
     if (isSignup) {
-      result = await emailSignup(email, password, name);
+      result = await emailSignup(trimmedEmail, password, trimmedName);
     } else {
-      result = await emailLogin(email, password);
+      result = await emailLogin(trimmedEmail, password);
     }
     setAuthLoading(false);
 
     if (result.success) {
       setEmailModalVisible(false);
     } else {
-      Alert.alert(t('error') || 'Error', result.error);
+      handleAuthError(result);
     }
   };
 
@@ -186,15 +337,7 @@ const AuthScreen = () => {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.button, { backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }]}
-                onPress={() => handleLogin('phone')}
-              >
-                <Ionicons name="call" size={20} color="white" style={styles.icon} />
-                <Text style={[styles.buttonText, { color: 'white' }]}>
-                  {isReturningUser ? t('continueWithPhone') : t('signupWithPhone')}
-                </Text>
-              </TouchableOpacity>
+
             </View>
           </BlurView>
         </View>
@@ -257,6 +400,16 @@ const AuthScreen = () => {
                 value={password}
                 onChangeText={setPassword}
               />
+              {!isSignup && (
+                <TouchableOpacity
+                  onPress={openForgotPasswordModal}
+                  style={{ alignSelf: 'flex-end', marginTop: 8, marginBottom: 4 }}
+                >
+                  <Text style={{ color: theme.colors.primary, fontSize: 13, fontWeight: '600' }}>
+                    {t('forgotPassword') || 'Şifremi Unuttum / Şifre Belirle'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <TouchableOpacity
@@ -282,6 +435,38 @@ const AuthScreen = () => {
               </Text>
             </TouchableOpacity>
 
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 12, width: '100%' }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+              <Text style={{ marginHorizontal: 12, color: theme.colors.textSecondary, fontSize: 12 }}>
+                {t('or') || 'veya'}
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+            </View>
+
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                paddingVertical: 12,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.15)',
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                marginBottom: 12,
+              }}
+              onPress={() => {
+                setEmailModalVisible(false);
+                handleLogin('google');
+              }}
+            >
+              <Ionicons name="logo-google" size={18} color="white" style={{ marginRight: 8 }} />
+              <Text style={{ color: 'white', fontWeight: '600', fontSize: 13 }}>
+                {t('continueWithGoogle') || 'Google ile Devam Et'}
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
               onPress={() => setEmailModalVisible(false)}
@@ -292,56 +477,52 @@ const AuthScreen = () => {
         </BlurView>
       </Modal>
 
-      {/* Phone Modal */}
-      <Modal visible={phoneModalVisible} transparent animationType="slide" onRequestClose={() => setPhoneModalVisible(false)}>
+      {/* Forgot / Set Password Modal */}
+      <Modal visible={forgotPasswordModalVisible} transparent animationType="slide" onRequestClose={() => setForgotPasswordModalVisible(false)}>
         <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-              {isCodeSent ? t('verifyCode') : t('loginWithPhone')}
+              {t('resetPasswordTitle') || 'Şifre Sıfırlama / Belirleme'}
+            </Text>
+            <Text style={{ color: theme.colors.textSecondary, fontSize: 13, marginBottom: 16, lineHeight: 18, textAlign: 'center' }}>
+              {t('resetPasswordPrompt') || 'Şifrenizi sıfırlamak veya Google hesabınıza yeni bir şifre tanımlamak için lütfen e-posta adresinizi giriniz.'}
             </Text>
 
             <View style={styles.inputContainer}>
-              {!isCodeSent ? (
-                <TextInput
-                  style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-                  placeholder={t('phoneNumberPlaceholder') || '+1 234 567 89 00'}
-                  placeholderTextColor={theme.colors.textSecondary}
-                  keyboardType="phone-pad"
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                />
-              ) : (
-                <TextInput
-                  style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-                  placeholder={t('verificationCode') || 'Verification Code'}
-                  placeholderTextColor={theme.colors.textSecondary}
-                  keyboardType="number-pad"
-                  value={verificationCode}
-                  onChangeText={setVerificationCode}
-                />
-              )}
+              <TextInput
+                style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+                placeholder={t('email') || 'Email'}
+                placeholderTextColor={theme.colors.textSecondary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={resetEmail}
+                onChangeText={setResetEmail}
+              />
+            </View>
+
+            <View style={{ backgroundColor: 'rgba(99, 102, 241, 0.12)', padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.25)' }}>
+              <Text style={{ color: theme.colors.textSecondary, fontSize: 12, lineHeight: 16 }}>
+                {t('resetEmailNotice') || 'ℹ️ Gönderilen e-postanın gelen kutunuza düşmesi birkaç dakika sürebilir. Lütfen Spam/Gereksiz klasörünü de kontrol ediniz.'}
+              </Text>
             </View>
 
             <TouchableOpacity
               style={[styles.mainButton, { backgroundColor: theme.colors.primary }]}
-              onPress={isCodeSent ? handleVerifyCode : handlePhoneLogin}
-              disabled={authLoading}
+              onPress={handleSendResetEmail}
+              disabled={resetLoading}
             >
-              {authLoading ? (
+              {resetLoading ? (
                 <ActivityIndicator color="white" />
               ) : (
                 <Text style={styles.mainButtonText}>
-                  {isCodeSent ? (t('verify') || 'Verify') : (t('sendCode') || 'Send Code')}
+                  {t('sendResetLink') || 'Sıfırlama Bağlantısı Gönder'}
                 </Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
-              onPress={() => {
-                setPhoneModalVisible(false);
-                setIsCodeSent(false);
-              }}
+              onPress={() => setForgotPasswordModalVisible(false)}
             >
               <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
             </TouchableOpacity>
@@ -349,11 +530,7 @@ const AuthScreen = () => {
         </BlurView>
       </Modal>
 
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={Config.FIREBASE_CONFIG}
-        attemptInvisibleVerification={true}
-      />
+
     </View>
   );
 };

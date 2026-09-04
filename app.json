@@ -16,7 +16,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.onyx.habittracker",
-      "icon": "./assets/images/onyx-app-icon-1024x1024.png"
+      "buildNumber": "1",
+      "icon": "./assets/images/onyx-app-icon-1024x1024.png",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app requires camera access to allow you to take a profile picture.",
+        "NSPhotoLibraryUsageDescription": "This app requires access to your photo library to select a profile picture and save your streak achievements."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,6 +29,7 @@
         "backgroundColor": "#121212"
       },
       "package": "com.onyx.habittracker",
+      "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "icon": "./assets/images/onyx-app-icon-512x512.png"
@@ -32,6 +38,7 @@
       "favicon": "./assets/images/onyx-app-icon-512x512.png"
     },
     "plugins": [
+      "@react-native-google-signin/google-signin",
       "expo-asset",
       "expo-font",
       [

@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Modal, Image, TextInput, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Modal, Image, TextInput, Alert, Linking, ActivityIndicator, Platform } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useHabits } from '../../context/HabitContext';
 import { Ionicons } from '@expo/vector-icons';
-import { Globe, Moon, LogOut, Layout, User, Crown, Edit2, Camera, Image as ImageIcon, X, Shield } from 'lucide-react-native';
+import { Globe, Moon, LogOut, Layout, User, Crown, Edit2, Camera, Image as ImageIcon, X, Shield, Lock } from 'lucide-react-native';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import Config from '../../config/Config';
+import LegalModal from './LegalModal';
 
 const SettingsScreen = ({ navigation }) => {
     const theme = useTheme();
     const userContext = useUser();
-    const { user, logout, isPro, updateUser, resetToFree } = userContext;
+    const { user, logout, isPro, updateUser, resetToFree, setPasswordForCurrentUser } = userContext;
     const { language, setLanguage, t } = useLanguage();
     const { habits } = useHabits();
 
@@ -31,6 +33,12 @@ const SettingsScreen = ({ navigation }) => {
     const [editedName, setEditedName] = useState('');
     const [editedEmail, setEditedEmail] = useState('');
     const [editedAvatar, setEditedAvatar] = useState('');
+    const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [passwordLoading, setPasswordLoading] = useState(false);
+    const [legalModalVisible, setLegalModalVisible] = useState(false);
+    const [legalTab, setLegalTab] = useState('privacy');
 
     const languages = [
         { code: 'English', label: 'English' },
@@ -61,6 +69,50 @@ const SettingsScreen = ({ navigation }) => {
         await updateUser({ name: editedName, email: editedEmail, avatar: editedAvatar });
         setEditProfileModalVisible(false);
         Alert.alert(t('success'), t('profileUpdated'));
+    };
+
+    const handleSetPassword = async () => {
+        if (!newPassword || newPassword.length < 6) {
+            Alert.alert(t('warning') || 'Uyarı', t('weakPassword') || 'Şifre en az 6 karakter olmalıdır.');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            Alert.alert(t('warning') || 'Uyarı', t('passwordsDoNotMatch') || 'Şifreler eşleşmiyor.');
+            return;
+        }
+        setPasswordLoading(true);
+        const result = await setPasswordForCurrentUser(newPassword);
+        setPasswordLoading(false);
+        if (result.success) {
+            setPasswordModalVisible(false);
+            setNewPassword('');
+            setConfirmPassword('');
+            Alert.alert(t('success') || 'Başarılı', t('passwordSetSuccess') || 'Şifreniz başarıyla oluşturuldu! Artık hem Google ile hem de e-posta ve şifrenizle giriş yapabilirsiniz.');
+        } else {
+            const code = result.code || '';
+            const rawError = result.error || '';
+
+            if (code === 'auth/operation-not-allowed' || rawError.includes('operation-not-allowed')) {
+                Alert.alert(
+                    t('operationNotAllowedTitle') || 'Firebase E-posta Sağlayıcısı Kapalı',
+                    'Firebase Konsolunda "Email/Password" sağlayıcısı henüz aktif edilmemiştir.\n\nŞifre tanımlayabilmek için lütfen Firebase Konsolu -> Authentication -> Sign-in method sekmesinden "Email/Password" seçeneğini etkinleştiriniz.',
+                    [{ text: t('ok') || 'Tamam' }]
+                );
+            } else if (code === 'auth/requires-recent-login' || rawError.includes('requires-recent-login')) {
+                Alert.alert(
+                    t('securityNotice') || 'Güvenlik Uyarısı',
+                    'Şifre belirleme işlemi hassas bir işlem olduğu için lütfen uygulamadan çıkış yapıp tekrar giriş yaptıktan sonra deneyiniz.',
+                    [{ text: t('ok') || 'Tamam' }]
+                );
+            } else if (code === 'auth/weak-password' || rawError.includes('weak-password')) {
+                Alert.alert(
+                    t('weakPasswordTitle') || 'Şifre Yetersiz',
+                    t('weakPassword') || 'Şifreniz en az 6 karakter olmalıdır.'
+                );
+            } else {
+                Alert.alert(t('error') || 'Hata', rawError || 'Şifre oluşturulamadı.');
+            }
+        }
     };
 
     const takePhoto = async () => {
@@ -231,29 +283,30 @@ const SettingsScreen = ({ navigation }) => {
                 {!isPro && (
                     <SettingItem icon={Crown} title={t('restorePurchase')} onPress={handleRestore} />
                 )}
+                <SettingItem icon={Lock} title={t('setPasswordTitle') || 'Şifre Belirle / Değiştir'} onPress={() => setPasswordModalVisible(true)} />
                 <SettingItem icon={LogOut} title={t('logOut')} onPress={handleLogout} />
                 <SettingItem icon={X} title={t('deleteAccount')} onPress={handleDeleteAccount} />
 
                 <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary, marginTop: 24 }]}>{t('about')}</Text>
-                <SettingItem icon={Shield} title={t('privacyPolicy')} onPress={() => Linking.openURL('https://onyxhabittracker.com/privacy')} />
-                <SettingItem icon={Edit2} title={t('termsOfService')} onPress={() => Linking.openURL('https://onyxhabittracker.com/terms')} />
+                <SettingItem icon={Shield} title={t('privacyPolicy')} onPress={() => { setLegalTab('privacy'); setLegalModalVisible(true); }} />
+                <SettingItem icon={Edit2} title={t('termsOfService')} onPress={() => { setLegalTab('terms'); setLegalModalVisible(true); }} />
 
-                {/* Dev Tool for Testing */}
-                <TouchableOpacity
-                    style={{ marginTop: 40, alignItems: 'center', opacity: 0.3 }}
-                    onPress={() => {
-                        if (isPro) {
-                            // Assuming resetToFree is available in useUser hook now
-                            // We need to cast it or just call it if we updated the context
-                            userContext.resetToFree && userContext.resetToFree();
-                            alert('Reset to Free User');
-                        }
-                    }}
-                >
-                    <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>
-                        DEV: {isPro ? 'Tap to Reset Pro' : 'Free User Mode'}
-                    </Text>
-                </TouchableOpacity>
+                {/* Dev Tool for Testing (Only in Development) */}
+                {__DEV__ && (
+                    <TouchableOpacity
+                        style={{ marginTop: 40, alignItems: 'center', opacity: 0.3 }}
+                        onPress={() => {
+                            if (isPro) {
+                                userContext.resetToFree && userContext.resetToFree();
+                                alert('Reset to Free User');
+                            }
+                        }}
+                    >
+                        <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>
+                            DEV: {isPro ? 'Tap to Reset Pro' : 'Free User Mode'}
+                        </Text>
+                    </TouchableOpacity>
+                )}
             </ScrollView>
 
             {/* Language Modal */}
@@ -348,6 +401,70 @@ const SettingsScreen = ({ navigation }) => {
                 </View>
             </Modal>
 
+            {/* Set Password Modal */}
+            <Modal visible={passwordModalVisible} transparent animationType="slide" onRequestClose={() => setPasswordModalVisible(false)}>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.editProfileContent, { backgroundColor: theme.colors.card }]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('setPasswordTitle') || 'Şifre Belirle / Değiştir'}</Text>
+                            <TouchableOpacity onPress={() => setPasswordModalVisible(false)}>
+                                <X size={24} color={theme.colors.text} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={{ color: theme.colors.textSecondary, fontSize: 13, marginBottom: 16 }}>
+                            {t('setPasswordDesc') || 'E-posta ve şifrenizle de giriş yapabilmek için en az 6 karakterli bir şifre belirleyin.'}
+                        </Text>
+
+                        <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>{t('newPassword') || 'Yeni Şifre'}</Text>
+                        <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                            <Lock size={20} color={theme.colors.textSecondary} />
+                            <TextInput
+                                style={[styles.input, { color: theme.colors.text }]}
+                                value={newPassword}
+                                onChangeText={setNewPassword}
+                                placeholder="••••••••"
+                                placeholderTextColor={theme.colors.textSecondary}
+                                secureTextEntry
+                            />
+                        </View>
+
+                        <Text style={[styles.inputLabel, { color: theme.colors.textSecondary, marginTop: 16 }]}>{t('confirmPassword') || 'Şifre Tekrar'}</Text>
+                        <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                            <Lock size={20} color={theme.colors.textSecondary} />
+                            <TextInput
+                                style={[styles.input, { color: theme.colors.text }]}
+                                value={confirmPassword}
+                                onChangeText={setConfirmPassword}
+                                placeholder="••••••••"
+                                placeholderTextColor={theme.colors.textSecondary}
+                                secureTextEntry
+                            />
+                        </View>
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.cancelButton, { backgroundColor: theme.colors.surface }]}
+                                onPress={() => setPasswordModalVisible(false)}
+                            >
+                                <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.saveButton, { backgroundColor: theme.colors.primary }]}
+                                onPress={handleSetPassword}
+                                disabled={passwordLoading}
+                            >
+                                {passwordLoading ? (
+                                    <ActivityIndicator color="white" size="small" />
+                                ) : (
+                                    <Text style={styles.saveButtonText}>{t('save')}</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             {/* Avatar Options Modal */}
             <Modal visible={avatarOptionsVisible} transparent animationType="fade" onRequestClose={() => setAvatarOptionsVisible(false)}>
                 <View style={styles.modalOverlay}>
@@ -373,6 +490,13 @@ const SettingsScreen = ({ navigation }) => {
                     </View>
                 </View>
             </Modal>
+
+            {/* In-App Legal Modal */}
+            <LegalModal
+                visible={legalModalVisible}
+                initialTab={legalTab}
+                onClose={() => setLegalModalVisible(false)}
+            />
         </View>
     );
 };

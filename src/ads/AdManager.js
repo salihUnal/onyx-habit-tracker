@@ -8,7 +8,8 @@ import mobileAds, {
     RewardedAdEventType,
     InterstitialAd,
     AdEventType,
-    AppOpenAd
+    AppOpenAd,
+    AdsConsent
 } from 'react-native-google-mobile-ads';
 
 const MobileAds = mobileAds;
@@ -30,12 +31,25 @@ class AdManager {
     async init() {
         if (this.isInitialized || !MobileAds) return;
         try {
+            // 1. Google UMP (GDPR / Consent Management Platform for EEA & UK)
+            if (AdsConsent) {
+                try {
+                    await AdsConsent.requestInfoUpdate();
+                    await AdsConsent.loadAndShowConsentFormIfRequired();
+                } catch (consentErr) {
+                    console.log('UMP Consent notice:', consentErr?.message || consentErr);
+                }
+            }
+
+            // 2. Initialize AdMob SDK
             await MobileAds().initialize();
+
+            // 3. Request Configuration (General Audience / Teen rating, NOT child-directed COPPA)
             if (MaxAdContentRating) {
                 await MobileAds().setRequestConfiguration({
-                    maxAdContentRating: MaxAdContentRating.G,
-                    tagForChildDirectedTreatment: true,
-                    tagForUnderAgeOfConsent: true,
+                    maxAdContentRating: MaxAdContentRating.T,
+                    tagForChildDirectedTreatment: false,
+                    tagForUnderAgeOfConsent: false,
                 });
             }
             this.isInitialized = true;

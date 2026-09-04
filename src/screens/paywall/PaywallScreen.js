@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Linking, Platform } from 'react-native';
+import Config from '../../config/Config';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -7,6 +8,7 @@ import { useHabits } from '../../context/HabitContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Zap, Shield, Moon, Layout, Unlink, Check } from 'lucide-react-native';
+import LegalModal from '../settings/LegalModal';
 
 let Purchases;
 try {
@@ -32,6 +34,8 @@ const PaywallScreen = ({ navigation, route }) => {
   const [successModalVisible, setSuccessModalVisible] = React.useState(false);
   const [successMessage, setSuccessMessage] = React.useState('');
   const [offerings, setOfferings] = React.useState(null);
+  const [legalModalVisible, setLegalModalVisible] = React.useState(false);
+  const [legalTab, setLegalTab] = React.useState('privacy');
 
   React.useEffect(() => {
     if (Purchases) fetchOfferings();
@@ -74,16 +78,16 @@ const PaywallScreen = ({ navigation, route }) => {
     if (trigger === 'streak_repair') {
       const { habitId } = route.params;
       await repairStreak(habitId);
-      setSuccessMessage('Seri Başarıyla Onarıldı!');
+      setSuccessMessage(t('streakRepaired') || 'Seri Başarıyla Onarıldı!');
     } else if (trigger === 'break_habit_limit') {
       await rewardExtraHabit();
-      setSuccessMessage('Ödül Kazanıldı! 1 saat içinde yeni kötü alışkanlık ekleyebilirsin.');
+      setSuccessMessage(t('extraBreakReward') || 'Ödül Kazanıldı! 1 saat içinde yeni kötü alışkanlık ekleyebilirsin.');
     } else if (trigger === 'focus_limit') {
       await rewardExtraHabit();
-      setSuccessMessage('Ödül Kazanıldı! Ekstra odaklanma oturumu hakkı kazandın.');
+      setSuccessMessage(t('extraFocusReward') || 'Ödül Kazanıldı! Ekstra odaklanma oturumu hakkı kazandın.');
     } else {
       await rewardExtraHabit();
-      setSuccessMessage('Ödül Kazanıldı! 1 saat içinde yeni alışkanlık ekleyebilirsin.');
+      setSuccessMessage(t('extraHabitReward') || 'Ödül Kazanıldı! 1 saat içinde yeni alışkanlık ekleyebilirsin.');
     }
     setSuccessModalVisible(true);
   };
@@ -96,7 +100,7 @@ const PaywallScreen = ({ navigation, route }) => {
   const handlePurchase = async (pkg) => {
     const success = await upgradeToPro(pkg);
     if (success) {
-      setSuccessMessage('Onyx Pro Başarıyla Aktif Edildi!');
+      setSuccessMessage(t('proActivated') || 'Onyx Pro Başarıyla Aktif Edildi!');
       setSuccessModalVisible(true);
     }
   };
@@ -104,7 +108,7 @@ const PaywallScreen = ({ navigation, route }) => {
   const handleRestore = async () => {
     const success = await restorePurchases();
     if (success) {
-      setSuccessMessage('Satın alımlar başarıyla geri yüklendi!');
+      setSuccessMessage(t('restoreSuccess') || 'Satın alımlar başarıyla geri yüklendi!');
       setSuccessModalVisible(true);
     }
   };
@@ -239,13 +243,34 @@ const PaywallScreen = ({ navigation, route }) => {
               onPress={startAd}
             >
               <Text style={[styles.watchAdText, { color: theme.colors.textSecondary }]}>
-                {trigger === 'streak_repair' ? 'Reklam İzleyerek Onar' :
-                  trigger === 'break_habit_limit' ? 'Reklam İzleyerek Kötü Alışkanlık Ekle' :
-                    trigger === 'focus_limit' ? 'Reklam İzleyerek Odaklanmaya Başla' :
-                      'Reklam İzleyerek Alışkanlık Ekle'}
+                {trigger === 'streak_repair' ? (t('watchAdStreakRepair') || 'Reklam İzleyerek Onar') :
+                  trigger === 'break_habit_limit' ? (t('watchAdBreakLimit') || 'Reklam İzleyerek Kötü Alışkanlık Ekle') :
+                    trigger === 'focus_limit' ? (t('watchAdFocusLimit') || 'Reklam İzleyerek Odaklanmaya Başla') :
+                      (t('watchAdHabitLimit') || 'Reklam İzleyerek Alışkanlık Ekle')}
               </Text>
             </TouchableOpacity>
           )}
+
+          {/* Legal Links & Subscription Terms */}
+          <View style={styles.legalContainer}>
+            <Text style={[styles.subscriptionTermsText, { color: theme.colors.textSecondary }]}>
+              {t('subscriptionTermsDisclaimer') || 'Abonelik, dönem bitiminden en az 24 saat önce iptal edilmediği sürece otomatik yenilenir. Satın alımlarınızı Google Play veya App Store hesap ayarlarınızdan dilediğiniz zaman yönetebilir veya iptal edebilirsiniz.'}
+            </Text>
+
+            <View style={styles.legalLinksRow}>
+              <TouchableOpacity onPress={() => { setLegalTab('privacy'); setLegalModalVisible(true); }}>
+                <Text style={[styles.legalLinkText, { color: theme.colors.primary }]}>
+                  {t('privacyPolicy')}
+                </Text>
+              </TouchableOpacity>
+              <Text style={[styles.legalDivider, { color: theme.colors.textSecondary }]}>•</Text>
+              <TouchableOpacity onPress={() => { setLegalTab('terms'); setLegalModalVisible(true); }}>
+                <Text style={[styles.legalLinkText, { color: theme.colors.primary }]}>
+                  {Platform.OS === 'ios' ? `${t('termsOfService')} (${t('eula')})` : t('termsOfService')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </ScrollView>
 
@@ -272,6 +297,13 @@ const PaywallScreen = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
+
+      {/* In-App Legal Modal */}
+      <LegalModal
+        visible={legalModalVisible}
+        initialTab={legalTab}
+        onClose={() => setLegalModalVisible(false)}
+      />
     </View>
   );
 };
@@ -442,6 +474,34 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  legalContainer: {
+    marginTop: 24,
+    marginBottom: 16,
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  subscriptionTermsText: {
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'center',
+    opacity: 0.7,
+    marginBottom: 12,
+  },
+  legalLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  legalLinkText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  legalDivider: {
+    fontSize: 12,
+    opacity: 0.5,
   },
 });
 

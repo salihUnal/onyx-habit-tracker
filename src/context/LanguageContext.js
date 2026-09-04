@@ -62,7 +62,7 @@ export const LanguageProvider = ({ children }) => {
   };
 
   const t = (key) => {
-    return translations[language]?.[key] || key;
+    return translations[language]?.[key] || translations['English']?.[key] || key;
   };
 
   if (isLoading) {

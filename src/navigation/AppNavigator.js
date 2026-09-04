@@ -6,7 +6,6 @@ import { Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useUser } from '../context/UserContext';
 import { Home, Target, Settings, Unlink, List, BarChart2 } from 'lucide-react-native';
-import AdManager from '../ads/AdManager';
 
 // Screens
 import AuthScreen from '../screens/auth/AuthScreen';
@@ -27,25 +26,9 @@ const Tab = createBottomTabNavigator();
 
 const MainTabs = () => {
   const theme = useTheme();
-  const { isPro } = useUser();
-  const tabChangeCount = React.useRef(0);
 
   return (
     <Tab.Navigator
-      screenListeners={{
-        state: (e) => {
-          if (isPro) return;
-
-          tabChangeCount.current += 1;
-          // Show interstitial ad every 5 tab changes
-          if (tabChangeCount.current >= 5) {
-            if (AdManager && typeof AdManager.showInterstitial === 'function') {
-              AdManager.showInterstitial();
-            }
-            tabChangeCount.current = 0;
-          }
-        },
-      }}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {

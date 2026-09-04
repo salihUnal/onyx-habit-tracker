@@ -12,8 +12,10 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
-  signInWithPhoneNumber,
-  RecaptchaVerifier
+  EmailAuthProvider,
+  linkWithCredential,
+  updatePassword,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
@@ -36,6 +38,22 @@ try {
   console.log('Purchases library not available');
 }
 
+let GoogleSignin, statusCodes;
+try {
+  const googleSigninModule = require('@react-native-google-signin/google-signin');
+  GoogleSignin = googleSigninModule.GoogleSignin;
+  statusCodes = googleSigninModule.statusCodes;
+  if (GoogleSignin) {
+    GoogleSignin.configure({
+      webClientId: Config.GOOGLE_WEB_CLIENT_ID,
+      offlineAccess: false,
+    });
+    console.log('✅ Native GoogleSignin configured successfully');
+  }
+} catch (e) {
+  console.log('Native GoogleSignin module not available in this environment');
+}
+
 const defaultUserContext = {
   user: null,
   isPro: false,
@@ -44,8 +62,6 @@ const defaultUserContext = {
   googleLogin: () => { },
   emailLogin: () => { },
   emailSignup: () => { },
-  phoneLogin: () => { },
-  verifyPhoneCode: () => { },
   logout: () => { },
   upgradeToPro: () => { },
   restorePurchases: () => { },
@@ -59,51 +75,79 @@ export const UserProvider = ({ children }) => {
   const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Expo Go ve APK ayrımını yaparak Google'a giden redirect_uri'yi manuel olarak yönetiyoruz
   const isExpoGo = Constants.appOwnership === 'expo';
   const redirectUri = isExpoGo
     ? 'https://auth.expo.io/@melezprens1989/onyx-habit-tracker'
     : makeRedirectUri({ scheme: 'onyx-habit-tracker' });
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: Config.GOOGLE_CLIENT_ID_IOS,
-    androidClientId: Config.GOOGLE_CLIENT_ID_ANDROID,
+    clientId: Config.GOOGLE_WEB_CLIENT_ID,
     webClientId: Config.GOOGLE_WEB_CLIENT_ID,
+    androidClientId: isExpoGo ? undefined : Config.GOOGLE_CLIENT_ID_ANDROID,
+    iosClientId: isExpoGo ? undefined : Config.GOOGLE_CLIENT_ID_IOS,
+    scopes: ['openid', 'profile', 'email'],
     responseType: 'id_token',
     redirectUri: redirectUri,
   });
 
   useEffect(() => {
-    if (isExpoGo) {
-      console.log('🛠 Auth Environment: Expo Go');
+    if (request) {
+      console.log('🛠 Auth Environment isExpoGo:', isExpoGo);
       console.log('🔗 Forcing Redirect URI:', redirectUri);
+      console.log('🌐 Google Auth Request URL:', request.url);
     }
-  }, []);
+  }, [request]);
 
   const [confirm, setConfirm] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // User logged in via Firebase
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        const userData = {
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || 'User',
-          email: firebaseUser.email,
-          avatar: firebaseUser.photoURL,
-          ...(userDoc.exists() ? userDoc.data() : {})
-        };
-        setUser(userData);
-        await AsyncStorage.setItem('user', JSON.stringify(userData));
-        if (Purchases) await Purchases.logIn(firebaseUser.uid);
-      } else {
-        // User logged out
-        setUser(null);
-        await AsyncStorage.removeItem('user');
-        if (Purchases) await Purchases.logOut();
+      try {
+        if (firebaseUser) {
+          let userData = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'User',
+            email: firebaseUser.email,
+            avatar: firebaseUser.photoURL,
+          };
+          try {
+            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+            if (userDoc && userDoc.exists()) {
+              userData = { ...userData, ...userDoc.data() };
+            }
+          } catch (docErr) {
+            console.warn('⚠️ User profile Firestore read error (check rules):', docErr?.message);
+          }
+          setUser(userData);
+          await AsyncStorage.setItem('user', JSON.stringify(userData));
+          if (Purchases) {
+            try {
+              await Purchases.logIn(firebaseUser.uid);
+            } catch (pErr) {
+              console.log('RevenueCat logIn error:', pErr?.message || pErr);
+            }
+          }
+        } else {
+          // User logged out / not logged in
+          setUser(null);
+          await AsyncStorage.removeItem('user');
+          if (Purchases) {
+            try {
+              const isAnonymous = await Purchases.isAnonymous();
+              if (!isAnonymous) {
+                await Purchases.logOut();
+              }
+            } catch (pErr) {
+              // Ignore logout errors when already anonymous or not configured
+              console.log('RevenueCat logOut ignored:', pErr?.message || pErr);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('onAuthStateChanged error:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return unsubscribe;
@@ -179,8 +223,39 @@ export const UserProvider = ({ children }) => {
     await AsyncStorage.setItem('user', JSON.stringify(mockUserData));
   };
 
-  const googleLogin = () => {
-    promptAsync();
+  const googleLogin = async () => {
+    try {
+      if (GoogleSignin) {
+        console.log('🚀 Initiating Native Google Sign-In...');
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        const userInfo = await GoogleSignin.signIn();
+        const idToken = userInfo.data?.idToken || userInfo.idToken;
+        if (idToken) {
+          const credential = GoogleAuthProvider.credential(idToken);
+          await signInWithCredential(auth, credential);
+          return { success: true };
+        } else {
+          console.warn('⚠️ Google Sign-In succeeded but no idToken was returned');
+        }
+      } else {
+        console.log('🌐 GoogleSignin native module not available, falling back to WebAuthSession...');
+        if (!request) {
+          console.warn('⚠️ Google Auth request not ready yet');
+        }
+        await promptAsync();
+      }
+    } catch (e) {
+      if (statusCodes && e.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log('ℹ️ Google Sign-In cancelled by user');
+      } else if (statusCodes && e.code === statusCodes.IN_PROGRESS) {
+        console.log('ℹ️ Google Sign-In is already in progress');
+      } else if (statusCodes && e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        console.error('❌ Play Services not available or outdated');
+      } else {
+        console.error('❌ Google Login Error:', e);
+      }
+      return { success: false, error: e.message };
+    }
   };
 
   const emailLogin = async (email, password) => {
@@ -188,7 +263,7 @@ export const UserProvider = ({ children }) => {
       await signInWithEmailAndPassword(auth, email, password);
       return { success: true };
     } catch (e) {
-      return { success: false, error: e.message };
+      return { success: false, error: e.message, code: e.code };
     }
   };
 
@@ -206,34 +281,53 @@ export const UserProvider = ({ children }) => {
       setUser(userData);
       return { success: true };
     } catch (e) {
-      return { success: false, error: e.message };
+      return { success: false, error: e.message, code: e.code };
     }
   };
 
-  const phoneLogin = async (phoneNumber, recaptchaVerifier) => {
+
+
+  const resetPassword = async (email) => {
     try {
-      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
-      setConfirm(confirmation);
+      await sendPasswordResetEmail(auth, email);
       return { success: true };
     } catch (e) {
-      console.error('Phone Login Error:', e);
-      return { success: false, error: e.message };
+      console.error('Reset Password Error:', e);
+      return { success: false, error: e.message, code: e.code };
     }
   };
 
-  const verifyPhoneCode = async (code) => {
+  const setPasswordForCurrentUser = async (newPassword) => {
     try {
-      if (!confirm) throw new Error('No confirmation object');
-      await confirm.confirm(code);
+      if (!auth.currentUser || !auth.currentUser.email) {
+        return { success: false, error: 'User not authenticated' };
+      }
+      const credential = EmailAuthProvider.credential(auth.currentUser.email, newPassword);
+      try {
+        await linkWithCredential(auth.currentUser, credential);
+      } catch (linkErr) {
+        if (linkErr.code === 'auth/provider-already-linked') {
+          await updatePassword(auth.currentUser, newPassword);
+        } else {
+          throw linkErr;
+        }
+      }
       return { success: true };
     } catch (e) {
-      console.error('Verify Code Error:', e);
-      return { success: false, error: e.message };
+      console.error('Set Password Error:', e);
+      return { success: false, error: e.message, code: e.code };
     }
   };
 
   const logout = async () => {
     try {
+      if (GoogleSignin) {
+        try {
+          await GoogleSignin.signOut();
+        } catch (gErr) {
+          console.log('GoogleSignin signOut ignored:', gErr?.message || gErr);
+        }
+      }
       await signOut(auth);
       setUser(null);
       const keysToClear = [
@@ -336,7 +430,11 @@ export const UserProvider = ({ children }) => {
 
     // Sync to Firestore if logged in
     if (auth.currentUser) {
-      await setDoc(doc(db, 'users', auth.currentUser.uid), updatedData, { merge: true });
+      try {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), updatedData, { merge: true });
+      } catch (fErr) {
+        console.warn('⚠️ Firestore updateUser skipped (check rules):', fErr?.message);
+      }
     }
 
     // Update the persistent profile as well
@@ -351,8 +449,8 @@ export const UserProvider = ({ children }) => {
       googleLogin,
       emailLogin,
       emailSignup,
-      phoneLogin,
-      verifyPhoneCode,
+      resetPassword,
+      setPasswordForCurrentUser,
       logout,
       upgradeToPro,
       restorePurchases,

@@ -6,5 +6,3 @@ onyx-habit-tracker geliştiricilerinden biriyseniz hata ayrıntılarını incele
 Hata 400: invalid_request hatası alıyorum. 
 
 ios için app oluşturmadım
-sadece google ile üyelik alınıyor. 
-telefon ve eposta ile kayıt seçeneğini aktif etmek istiyorum.
