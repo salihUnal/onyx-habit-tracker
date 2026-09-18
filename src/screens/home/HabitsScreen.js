@@ -13,6 +13,14 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BlurView } from 'expo-blur';
+import StreakRescueModal from '../../components/StreakRescueModal';
+
+let AdManager;
+try {
+    AdManager = require('../../ads/AdManager').default;
+} catch (e) {
+    console.log('AdManager not available');
+}
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -26,8 +34,13 @@ const HabitsScreen = ({ navigation }) => {
     const theme = useTheme();
     const colors = theme?.colors || {};
     const { user, isPro } = useUser();
-    const { habits, addHabit, updateHabit, toggleHabit, deleteHabit, extraHabits } = useHabits();
+    const { habits, addHabit, updateHabit, toggleHabit, deleteHabit, extraHabits, streakFreezes, useStreakFreeze, earnStreakFreezeWithAd } = useHabits();
     const { t, language } = useLanguage();
+
+    // Streak Rescue States
+    const [rescuingHabit, setRescuingHabit] = useState(null);
+    const [rescueModalVisible, setRescueModalVisible] = useState(false);
+    const [rescueLoading, setRescueLoading] = useState(false);
 
     // Date State
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -90,6 +103,51 @@ const HabitsScreen = ({ navigation }) => {
         scheduleDailyNotification();
         loadCustomCategories();
     }, []);
+
+    const handleUseFreeze = async (habitId) => {
+        setRescueLoading(true);
+        const res = await useStreakFreeze(habitId);
+        setRescueLoading(false);
+        if (res.success) {
+            setRescueModalVisible(false);
+            setShowConfetti(true);
+            Alert.alert('❄️ ' + (t('streakRescuedSuccess') || 'Serin Başarıyla Kurtarıldı!'), '1 adet Seri Dondurma Kalkanı kullanıldı.');
+        } else {
+            Alert.alert(t('warning') || 'Uyarı', t('noFreezesLeft') || 'Kalan Seri Dondurma Kalkanınız bulunmamaktadır.');
+        }
+    };
+
+    const handleWatchAdToRescue = (habitId) => {
+        if (!AdManager) {
+            if (__DEV__) {
+                useStreakFreeze(habitId);
+                setRescueModalVisible(false);
+                setShowConfetti(true);
+                Alert.alert('❄️ ' + (t('streakRescuedSuccess') || 'Serin Başarıyla Kurtarıldı!'), 'Test modunda reklam ödülü anında verildi.');
+            }
+            return;
+        }
+
+        setRescueLoading(true);
+        AdManager.showRewarded(
+            async (reward) => {
+                await useStreakFreeze(habitId);
+                setRescueLoading(false);
+                setRescueModalVisible(false);
+                setShowConfetti(true);
+                Alert.alert('❄️ ' + (t('streakRescuedSuccess') || 'Serin Başarıyla Kurtarıldı!'), 'Ödüllü reklam tamamlandı ve serin korundu!');
+            },
+            () => {
+                setRescueLoading(false);
+                console.log('Rewarded ad closed or canceled');
+            }
+        );
+    };
+
+    const openRescueModal = (habit) => {
+        setRescuingHabit(habit);
+        setRescueModalVisible(true);
+    };
 
     const changeDate = (days) => {
         const newDate = new Date(selectedDate);
@@ -257,10 +315,18 @@ const HabitsScreen = ({ navigation }) => {
         }
     };
 
-    const formatTime = (isoString) => {
-        if (!isoString) return '';
-        const date = new Date(isoString);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const formatTime = (timeValue) => {
+        if (!timeValue) return '';
+        if (typeof timeValue === 'string' && /^\d{1,2}:\d{2}$/.test(timeValue)) {
+            return timeValue;
+        }
+        try {
+            const date = new Date(timeValue);
+            if (isNaN(date.getTime())) return timeValue;
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch {
+            return timeValue;
+        }
     };
 
     const getCategoryIcon = (catId) => {
@@ -315,7 +381,7 @@ const HabitsScreen = ({ navigation }) => {
                     <Text style={[styles.username, { color: colors.text }]}>{user?.name || 'Guest'}</Text>
                 </View>
                 {!isPro && (
-                    <TouchableOpacity onPress={() => navigation.navigate('Paywall')}>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Paywall')}>
                         <LinearGradient
                             colors={[colors.primary, colors.secondary]}
                             style={styles.proBadge}
@@ -328,11 +394,11 @@ const HabitsScreen = ({ navigation }) => {
 
             {/* Date Navigation */}
             <View style={styles.dateNav}>
-                <TouchableOpacity onPress={() => changeDate(-1)} style={styles.navButton}>
+                <TouchableOpacity activeOpacity={0.7} onPress={() => changeDate(-1)} style={styles.navButton}>
                     <ChevronLeft size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.date, { color: colors.textSecondary, marginBottom: 0 }]}>{dateString}</Text>
-                <TouchableOpacity onPress={() => changeDate(1)} style={styles.navButton}>
+                <TouchableOpacity activeOpacity={0.7} onPress={() => changeDate(1)} style={styles.navButton}>
                     <ChevronRight size={24} color={colors.text} />
                 </TouchableOpacity>
             </View>
@@ -365,7 +431,7 @@ const HabitsScreen = ({ navigation }) => {
                     />
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-                    <TouchableOpacity
+                    <TouchableOpacity activeOpacity={0.7}
                         style={[
                             styles.filterChip,
                             {
@@ -378,7 +444,7 @@ const HabitsScreen = ({ navigation }) => {
                         <Text style={[styles.filterText, { color: activeFilter === 'all' ? 'white' : colors.text }]}>{t('all')}</Text>
                     </TouchableOpacity>
                     {allCategories.map(cat => (
-                        <TouchableOpacity
+                        <TouchableOpacity activeOpacity={0.7}
                             key={cat.id}
                             style={[
                                 styles.filterChip,
@@ -401,7 +467,28 @@ const HabitsScreen = ({ navigation }) => {
             <SectionList
                 sections={groupedHabits}
                 keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.habitsList}
+                contentContainerStyle={groupedHabits.length === 0 ? styles.emptyListContent : styles.habitsList}
+                ListEmptyComponent={() => (
+                    <View style={styles.emptyContainer}>
+                        <View style={[styles.emptyIconBox, { backgroundColor: colors.surface }]}>
+                            <Zap size={48} color={colors.primary} />
+                        </View>
+                        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                            {t('noHabitsTitle') || 'Henüz Alışkanlık Yok'}
+                        </Text>
+                        <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
+                            {t('noHabitsDesc') || 'Hayatını değiştirmeye başlamak için ilk alışkanlığını ekle.'}
+                        </Text>
+                        <TouchableOpacity activeOpacity={0.7} 
+                            style={[styles.emptyButton, { backgroundColor: colors.primary }]}
+                            onPress={() => openModal()}
+                            activeOpacity={0.7}
+                        >
+                            <Plus size={20} color="white" />
+                            <Text style={styles.emptyButtonText}>{t('addHabit') || 'Alışkanlık Ekle'}</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
                 renderSectionHeader={({ section: { label, color } }) => (
                     <View style={styles.sectionHeader}>
                         <Text style={[styles.sectionTitle, { color: color }]}>{label}</Text>
@@ -431,18 +518,26 @@ const HabitsScreen = ({ navigation }) => {
                                             const yesterday = new Date();
                                             yesterday.setDate(yesterday.getDate() - 1);
                                             const yesterdayStr = yesterday.toISOString().split('T')[0];
-                                            const isYesterdayCompleted = item.completedDates.includes(yesterdayStr);
-                                            const isTodayCompleted = item.completedDates.includes(today.toISOString().split('T')[0]);
+                                            const isYesterdayCompleted = item.completedDates && item.completedDates.includes(yesterdayStr);
+                                            const isFrozenYesterday = item.frozenDates && item.frozenDates.includes(yesterdayStr);
 
-                                            // Only show repair if yesterday is missed AND streak > 0 (or was > 0)
-                                            // Simplified: If yesterday missed, show repair.
-                                            if (!isYesterdayCompleted && !isPro) {
+                                            if (isFrozenYesterday) {
                                                 return (
-                                                    <TouchableOpacity
-                                                        onPress={() => navigation.navigate('Paywall', { trigger: 'streak_repair', habitId: item.id })}
-                                                        style={styles.repairButton}
+                                                    <View style={styles.frozenBadge}>
+                                                        <Text style={styles.frozenBadgeText}>❄️ Korundu</Text>
+                                                    </View>
+                                                );
+                                            }
+
+                                            // Show rescue badge if yesterday was missed and habit has streak or history
+                                            if (!isYesterdayCompleted && (item.streak > 0 || (item.completedDates && item.completedDates.length > 0))) {
+                                                return (
+                                                    <TouchableOpacity activeOpacity={0.7}
+                                                        onPress={() => openRescueModal(item)}
+                                                        style={styles.rescueBadgeButton}
+                                                        activeOpacity={0.8}
                                                     >
-                                                        <Text style={styles.repairText}>Repair</Text>
+                                                        <Text style={styles.rescueBadgeText}>❄️ {t('rescueStreak') || 'Seriyi Kurtar'}</Text>
                                                     </TouchableOpacity>
                                                 );
                                             }
@@ -461,10 +556,10 @@ const HabitsScreen = ({ navigation }) => {
                             </View>
 
                             <View style={styles.actions}>
-                                <TouchableOpacity onPress={() => openModal(item)} style={styles.actionButton}>
+                                <TouchableOpacity activeOpacity={0.7} onPress={() => openModal(item)} style={styles.actionButton}>
                                     <Edit2 size={18} color={colors.textSecondary} />
                                 </TouchableOpacity>
-                                <TouchableOpacity
+                                <TouchableOpacity activeOpacity={0.7}
                                     onPress={() => navigation.navigate('SocialShare', {
                                         habit: item,
                                         color: iconColor,
@@ -474,7 +569,7 @@ const HabitsScreen = ({ navigation }) => {
                                 >
                                     <Share2 size={18} color={colors.textSecondary} />
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleToggleHabit(item.id)} style={[styles.checkbox, { borderColor: iconColor, backgroundColor: isCompleted ? iconColor : 'transparent' }]}>
+                                <TouchableOpacity activeOpacity={0.7} onPress={() => handleToggleHabit(item.id)} style={[styles.checkbox, { borderColor: iconColor, backgroundColor: isCompleted ? iconColor : 'transparent' }]}>
                                     {isCompleted && <Check size={16} color="white" />}
                                 </TouchableOpacity>
                             </View>
@@ -484,7 +579,7 @@ const HabitsScreen = ({ navigation }) => {
             />
 
             {/* Add Button */}
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
                 style={[styles.addButton, { backgroundColor: colors.primary }]}
                 onPress={() => openModal()}
             >
@@ -509,7 +604,7 @@ const HabitsScreen = ({ navigation }) => {
                                     {editingHabit ? t('editHabit') : t('newHabit')}
                                 </Text>
                                 {editingHabit && (
-                                    <TouchableOpacity onPress={handleDeleteHabit} style={styles.deleteButton}>
+                                    <TouchableOpacity activeOpacity={0.7} onPress={handleDeleteHabit} style={styles.deleteButton}>
                                         <Trash2 size={20} color="#EF4444" />
                                     </TouchableOpacity>
                                 )}
@@ -526,7 +621,7 @@ const HabitsScreen = ({ navigation }) => {
 
                             <View style={styles.categoryHeader}>
                                 <Text style={[styles.label, { color: colors.textSecondary }]}>{t('category')}</Text>
-                                <TouchableOpacity onPress={() => setIsCategoryModalVisible(true)}>
+                                <TouchableOpacity activeOpacity={0.7} onPress={() => setIsCategoryModalVisible(true)}>
                                     <Text style={{ color: colors.primary, fontSize: 12, fontWeight: 'bold' }}>+ {t('addCategory')}</Text>
                                 </TouchableOpacity>
                             </View>
@@ -536,7 +631,7 @@ const HabitsScreen = ({ navigation }) => {
                                     const Icon = cat.icon;
                                     const isSelected = selectedCategory === cat.id;
                                     return (
-                                        <TouchableOpacity
+                                        <TouchableOpacity activeOpacity={0.7}
                                             key={cat.id}
                                             style={[
                                                 styles.categoryItem,
@@ -557,7 +652,7 @@ const HabitsScreen = ({ navigation }) => {
                             </ScrollView>
 
                             <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16 }]}>{t('time')}</Text>
-                            <TouchableOpacity
+                            <TouchableOpacity activeOpacity={0.7}
                                 style={[styles.timeButton, { borderColor: colors.primary, backgroundColor: colors.surface }]}
                                 onPress={() => setShowTimePicker(true)}
                             >
@@ -583,10 +678,10 @@ const HabitsScreen = ({ navigation }) => {
                             )}
 
                             <View style={styles.modalButtons}>
-                                <TouchableOpacity onPress={closeModal} style={styles.modalButton}>
+                                <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.modalButton}>
                                     <Text style={{ color: colors.textSecondary }}>{t('cancel')}</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={handleSaveHabit} style={[styles.modalButton, { backgroundColor: colors.primary }]}>
+                                <TouchableOpacity activeOpacity={0.7} onPress={handleSaveHabit} style={[styles.modalButton, { backgroundColor: colors.primary }]}>
                                     <Text style={{ color: 'white', fontWeight: 'bold' }}>
                                         {editingHabit ? t('save') : t('create')}
                                     </Text>
@@ -616,10 +711,10 @@ const HabitsScreen = ({ navigation }) => {
                             autoFocus
                         />
                         <View style={styles.modalButtons}>
-                            <TouchableOpacity onPress={() => setIsCategoryModalVisible(false)} style={styles.modalButton}>
+                            <TouchableOpacity activeOpacity={0.7} onPress={() => setIsCategoryModalVisible(false)} style={styles.modalButton}>
                                 <Text style={{ color: colors.textSecondary }}>{t('cancel')}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={saveCustomCategory} style={[styles.modalButton, { backgroundColor: colors.primary }]}>
+                            <TouchableOpacity activeOpacity={0.7} onPress={saveCustomCategory} style={[styles.modalButton, { backgroundColor: colors.primary }]}>
                                 <Text style={{ color: 'white', fontWeight: 'bold' }}>{t('create')}</Text>
                             </TouchableOpacity>
                         </View>
@@ -646,7 +741,7 @@ const HabitsScreen = ({ navigation }) => {
                         <Text style={[styles.congratsText, { color: colors.textSecondary }]}>
                             {t('dailyGoalReached')}
                         </Text>
-                        <TouchableOpacity
+                        <TouchableOpacity activeOpacity={0.7}
                             style={[styles.congratsButton, { backgroundColor: colors.primary }]}
                             onPress={() => setCongratsVisible(false)}
                         >
@@ -676,7 +771,7 @@ const HabitsScreen = ({ navigation }) => {
                         <Text style={[styles.congratsText, { color: colors.textSecondary }]}>
                             {t('perfectScoreMsg')}
                         </Text>
-                        <TouchableOpacity
+                        <TouchableOpacity activeOpacity={0.7}
                             style={[styles.congratsButton, { backgroundColor: '#FFD700' }]}
                             onPress={() => setPerfectScoreVisible(false)}
                         >
@@ -706,13 +801,13 @@ const HabitsScreen = ({ navigation }) => {
                         </Text>
 
                         <View style={styles.modalButtons}>
-                            <TouchableOpacity
+                            <TouchableOpacity activeOpacity={0.7}
                                 onPress={() => setIsConfirmModalVisible(false)}
                                 style={[styles.modalButton, { flex: 1, alignItems: 'center' }]}
                             >
                                 <Text style={{ color: colors.textSecondary }}>{t('cancel')}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
+                            <TouchableOpacity activeOpacity={0.7}
                                 onPress={() => {
                                     if (editingHabit) deleteHabit(editingHabit.id);
                                     setIsConfirmModalVisible(false);
@@ -729,7 +824,7 @@ const HabitsScreen = ({ navigation }) => {
 
             {
                 !isPro && (
-                    <TouchableOpacity
+                    <TouchableOpacity activeOpacity={0.7}
                         style={[styles.bannerAd, { backgroundColor: colors.surface, borderTopColor: colors.border }]}
                         onPress={() => navigation.navigate('Paywall')}
                     >
@@ -746,6 +841,19 @@ const HabitsScreen = ({ navigation }) => {
                     </TouchableOpacity>
                 )
             }
+
+            {/* Streak Rescue Modal */}
+            <StreakRescueModal
+                visible={rescueModalVisible}
+                habit={rescuingHabit}
+                streakFreezes={streakFreezes}
+                isPro={isPro}
+                loading={rescueLoading}
+                onClose={() => setRescueModalVisible(false)}
+                onUseFreeze={handleUseFreeze}
+                onWatchAd={handleWatchAdToRescue}
+                onUpgrade={() => navigation.navigate('Paywall', { trigger: 'streak_repair' })}
+            />
         </View>
     );
 };
@@ -797,6 +905,15 @@ const styles = StyleSheet.create({
     actionButton: { padding: 8 },
     checkbox: { width: 28, height: 28, borderRadius: 8, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
     addButton: { position: 'absolute', bottom: 90, right: 20, width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.30, shadowRadius: 4.65, elevation: 8 },
+    
+    // Empty State
+    emptyListContent: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 100 },
+    emptyContainer: { alignItems: 'center', paddingHorizontal: 32, marginTop: 40 },
+    emptyIconBox: { width: 96, height: 96, borderRadius: 48, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+    emptyTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' },
+    emptyDesc: { fontSize: 16, textAlign: 'center', lineHeight: 24, marginBottom: 32 },
+    emptyButton: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, elevation: 4 },
+    emptyButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
 
     // Modals
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
@@ -894,7 +1011,35 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 10,
         fontWeight: 'bold',
-    }
+    },
+    rescueBadgeButton: {
+        backgroundColor: 'rgba(6, 182, 212, 0.15)',
+        borderWidth: 1,
+        borderColor: '#06B6D4',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        marginLeft: 8,
+    },
+    rescueBadgeText: {
+        color: '#38BDF8',
+        fontSize: 11,
+        fontWeight: 'bold',
+    },
+    frozenBadge: {
+        backgroundColor: 'rgba(56, 189, 248, 0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(56, 189, 248, 0.3)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        marginLeft: 8,
+    },
+    frozenBadgeText: {
+        color: '#67E8F9',
+        fontSize: 11,
+        fontWeight: '600',
+    },
 });
 
 export default HabitsScreen;

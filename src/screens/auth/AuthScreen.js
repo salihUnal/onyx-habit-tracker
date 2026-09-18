@@ -8,16 +8,17 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Globe, Zap } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
-import { TextInput, ActivityIndicator, Alert } from 'react-native';
+import { TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 
 
 const AuthScreen = () => {
   const theme = useTheme();
-  const { login, googleLogin, emailLogin, emailSignup, resetPassword } = useUser();
+  const { login, loginWithDummyUser, googleLogin, emailLogin, emailSignup, resetPassword } = useUser();
   const { t, language, setLanguage } = useLanguage();
   const [isReturningUser, setIsReturningUser] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [emailModalVisible, setEmailModalVisible] = useState(false);
+  const [demoModalVisible, setDemoModalVisible] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -286,7 +287,7 @@ const AuthScreen = () => {
       <View style={styles.glowOrbBottom} />
 
       {/* Language Button */}
-      <TouchableOpacity
+      <TouchableOpacity activeOpacity={0.7}
         style={[styles.langButton, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
         onPress={() => setLanguageModalVisible(true)}
       >
@@ -317,7 +318,7 @@ const AuthScreen = () => {
             </Text>
 
             <View style={styles.buttons}>
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.7}
                 style={[styles.button, { backgroundColor: 'white' }]}
                 onPress={() => handleLogin('google')}
               >
@@ -327,13 +328,23 @@ const AuthScreen = () => {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.7}
                 style={[styles.button, { backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }]}
                 onPress={() => handleLogin('email')}
               >
                 <Ionicons name="mail" size={20} color="white" style={styles.icon} />
                 <Text style={[styles.buttonText, { color: 'white' }]}>
                   {isReturningUser ? t('continueWithEmail') : t('signupWithEmail')}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity activeOpacity={0.7}
+                style={[styles.button, { backgroundColor: 'rgba(99, 102, 241, 0.15)', borderWidth: 1, borderColor: '#6366F1' }]}
+                onPress={() => setDemoModalVisible(true)}
+              >
+                <Ionicons name="flask-outline" size={20} color="#A5B4FC" style={styles.icon} />
+                <Text style={[styles.buttonText, { color: '#E0E7FF' }]}>
+                  🧪 Test / Demo Girişi
                 </Text>
               </TouchableOpacity>
 
@@ -350,7 +361,7 @@ const AuthScreen = () => {
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('selectLanguage')}</Text>
             <ScrollView style={{ maxHeight: 300 }}>
               {languages.map(lang => (
-                <TouchableOpacity
+                <TouchableOpacity activeOpacity={0.7}
                   key={lang.code}
                   style={[styles.langItem, { borderBottomColor: theme.colors.border }]}
                   onPress={() => { setLanguage(lang.code); setLanguageModalVisible(false); }}
@@ -360,121 +371,128 @@ const AuthScreen = () => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.colors.surface }]} onPress={() => setLanguageModalVisible(false)}>
+            <TouchableOpacity activeOpacity={0.7} style={[styles.closeButton, { backgroundColor: theme.colors.surface }]} onPress={() => setLanguageModalVisible(false)}>
               <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
             </TouchableOpacity>
           </View>
         </BlurView>
       </Modal>
       <Modal visible={emailModalVisible} transparent animationType="slide" onRequestClose={() => setEmailModalVisible(false)}>
-        <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
-            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-              {isSignup ? t('signupWithEmail') : t('loginWithEmail')}
-            </Text>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                {isSignup ? t('signupWithEmail') : t('loginWithEmail')}
+              </Text>
 
-            <View style={styles.inputContainer}>
-              {isSignup && (
+              <View style={styles.inputContainer}>
+                {isSignup && (
+                  <TextInput
+                    style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+                    placeholder={t('name') || 'Name'}
+                    placeholderTextColor={theme.colors.textSecondary}
+                    value={name}
+                    onChangeText={setName}
+                  />
+                )}
                 <TextInput
                   style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-                  placeholder={t('name') || 'Name'}
+                  placeholder={t('email') || 'Email'}
                   placeholderTextColor={theme.colors.textSecondary}
-                  value={name}
-                  onChangeText={setName}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={email}
+                  onChangeText={setEmail}
                 />
-              )}
-              <TextInput
-                style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-                placeholder={t('email') || 'Email'}
-                placeholderTextColor={theme.colors.textSecondary}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-              />
-              <TextInput
-                style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-                placeholder={t('password') || 'Password'}
-                placeholderTextColor={theme.colors.textSecondary}
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
-              {!isSignup && (
-                <TouchableOpacity
-                  onPress={openForgotPasswordModal}
-                  style={{ alignSelf: 'flex-end', marginTop: 8, marginBottom: 4 }}
-                >
-                  <Text style={{ color: theme.colors.primary, fontSize: 13, fontWeight: '600' }}>
-                    {t('forgotPassword') || 'Şifremi Unuttum / Şifre Belirle'}
+                <TextInput
+                  style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+                  placeholder={t('password') || 'Password'}
+                  placeholderTextColor={theme.colors.textSecondary}
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                {!isSignup && (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={openForgotPasswordModal}
+                    style={{ alignSelf: 'flex-end', marginTop: 8, marginBottom: 4 }}
+                  >
+                    <Text style={{ color: theme.colors.primary, fontSize: 13, fontWeight: '600' }}>
+                      {t('forgotPassword') || 'Şifremi Unuttum / Şifre Belirle'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.mainButton, { backgroundColor: theme.colors.primary }]}
+                onPress={handleEmailAuth}
+                disabled={authLoading}
+              >
+                {authLoading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.mainButtonText}>
+                    {isSignup ? t('signup') : t('login')}
                   </Text>
-                </TouchableOpacity>
-              )}
-            </View>
+                )}
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.mainButton, { backgroundColor: theme.colors.primary }]}
-              onPress={handleEmailAuth}
-              disabled={authLoading}
-            >
-              {authLoading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.mainButtonText}>
-                  {isSignup ? t('signup') : t('login')}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setIsSignup(!isSignup)}
+                style={styles.switchButton}
+              >
+                <Text style={{ color: theme.colors.textSecondary }}>
+                  {isSignup ? t('alreadyHaveAccount') : t('dontHaveAccount')}
                 </Text>
-              )}
-            </TouchableOpacity>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => setIsSignup(!isSignup)}
-              style={styles.switchButton}
-            >
-              <Text style={{ color: theme.colors.textSecondary }}>
-                {isSignup ? t('alreadyHaveAccount') : t('dontHaveAccount')}
-              </Text>
-            </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 12, width: '100%' }}>
+                <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                <Text style={{ marginHorizontal: 12, color: theme.colors.textSecondary, fontSize: 12 }}>
+                  {t('or') || 'veya'}
+                </Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+              </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 12, width: '100%' }}>
-              <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-              <Text style={{ marginHorizontal: 12, color: theme.colors.textSecondary, fontSize: 12 }}>
-                {t('or') || 'veya'}
-              </Text>
-              <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.15)',
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  marginBottom: 12,
+                }}
+                onPress={() => {
+                  setEmailModalVisible(false);
+                  handleLogin('google');
+                }}
+              >
+                <Ionicons name="logo-google" size={18} color="white" style={{ marginRight: 8 }} />
+                <Text style={{ color: 'white', fontWeight: '600', fontSize: 13 }}>
+                  {t('continueWithGoogle') || 'Google ile Devam Et'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
+                onPress={() => setEmailModalVisible(false)}
+              >
+                <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
+              </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '100%',
-                paddingVertical: 12,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.15)',
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                marginBottom: 12,
-              }}
-              onPress={() => {
-                setEmailModalVisible(false);
-                handleLogin('google');
-              }}
-            >
-              <Ionicons name="logo-google" size={18} color="white" style={{ marginRight: 8 }} />
-              <Text style={{ color: 'white', fontWeight: '600', fontSize: 13 }}>
-                {t('continueWithGoogle') || 'Google ile Devam Et'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
-              onPress={() => setEmailModalVisible(false)}
-            >
-              <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
-            </TouchableOpacity>
-          </View>
-        </BlurView>
+          </BlurView>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Forgot / Set Password Modal */}
@@ -506,7 +524,7 @@ const AuthScreen = () => {
               </Text>
             </View>
 
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               style={[styles.mainButton, { backgroundColor: theme.colors.primary }]}
               onPress={handleSendResetEmail}
               disabled={resetLoading}
@@ -520,7 +538,7 @@ const AuthScreen = () => {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
               onPress={() => setForgotPasswordModalVisible(false)}
             >
@@ -530,6 +548,65 @@ const AuthScreen = () => {
         </BlurView>
       </Modal>
 
+      {/* Demo / Dummy Users Modal */}
+      <Modal visible={demoModalVisible} transparent animationType="fade" onRequestClose={() => setDemoModalVisible(false)}>
+        <BlurView intensity={70} tint="dark" style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>🧪 Test Profili Seçin</Text>
+            <Text style={{ color: theme.colors.textSecondary, fontSize: 13, textAlign: 'center', marginBottom: 16 }}>
+              Uygulamanın tüm özelliklerini anında test edebileceğiniz hazır profiller:
+            </Text>
+
+            <TouchableOpacity activeOpacity={0.7}
+              style={[styles.demoOptionCard, { borderColor: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}
+              onPress={async () => {
+                setDemoModalVisible(false);
+                await loginWithDummyUser('FREE');
+              }}
+            >
+              <Text style={{ color: '#10B981', fontWeight: 'bold', fontSize: 16 }}>Alex Rivera (Free Tester)</Text>
+              <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+                • 3 Alışkanlık sınırı (4. alışkanlıkta Paywall açılır){'\n'}
+                • Standart reklam ve sosyal paylaşım filigranı
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity activeOpacity={0.7}
+              style={[styles.demoOptionCard, { borderColor: '#8B5CF6', backgroundColor: 'rgba(139, 92, 246, 0.12)', marginTop: 12 }]}
+              onPress={async () => {
+                setDemoModalVisible(false);
+                await loginWithDummyUser('PRO');
+              }}
+            >
+              <Text style={{ color: '#A78BFA', fontWeight: 'bold', fontSize: 16 }}>Sarah Connor (Pro Tester)</Text>
+              <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+                • Sınırsız alışkanlık (6 aktif alışkanlık yüklü){'\n'}
+                • 42 günlük yüksek streak & Pomodoro seansları
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity activeOpacity={0.7}
+              style={[styles.demoOptionCard, { borderColor: theme.colors.border, backgroundColor: 'rgba(255, 255, 255, 0.05)', marginTop: 12 }]}
+              onPress={async () => {
+                setDemoModalVisible(false);
+                await loginWithDummyUser('CLEAN');
+              }}
+            >
+              <Text style={{ color: theme.colors.text, fontWeight: 'bold', fontSize: 16 }}>Yeni Kullanıcı (Sıfır Alışkanlık)</Text>
+              <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+                • Boş başlangıç deneyimi
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity activeOpacity={0.7}
+              style={[styles.closeButton, { backgroundColor: theme.colors.surface, marginTop: 20 }]}
+              onPress={() => setDemoModalVisible(false)}
+            >
+              <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </BlurView>
+      </Modal>
 
     </View>
   );
@@ -693,6 +770,11 @@ const styles = StyleSheet.create({
   switchButton: {
     alignItems: 'center',
     marginBottom: 8,
+  },
+  demoOptionCard: {
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
   },
 });
 

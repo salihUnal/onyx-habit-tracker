@@ -23,6 +23,14 @@ import { makeRedirectUri } from 'expo-auth-session';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { NativeModules } from 'react-native';
 import Constants from 'expo-constants';
+import {
+  DUMMY_USERS,
+  DUMMY_HABITS_FREE,
+  DUMMY_BREAK_HABITS_FREE,
+  DUMMY_HABITS_PRO,
+  DUMMY_BREAK_HABITS_PRO,
+  DUMMY_FOCUS_DATA_PRO
+} from '../constants/dummyData';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -59,13 +67,16 @@ const defaultUserContext = {
   isPro: false,
   loading: true,
   login: () => { },
+  loginWithDummyUser: () => { },
   googleLogin: () => { },
   emailLogin: () => { },
   emailSignup: () => { },
   logout: () => { },
   upgradeToPro: () => { },
   restorePurchases: () => { },
+  resetToFree: () => { },
   updateUser: () => { },
+  deleteAccount: () => { },
 };
 
 const UserContext = createContext(defaultUserContext);
@@ -128,6 +139,21 @@ export const UserProvider = ({ children }) => {
             }
           }
         } else {
+          // Check if there is an active local dummy user before clearing session
+          const localUserStr = await AsyncStorage.getItem('user');
+          if (localUserStr) {
+            try {
+              const parsed = JSON.parse(localUserStr);
+              if (parsed?.isDummy) {
+                setUser(parsed);
+                setLoading(false);
+                return;
+              }
+            } catch (pErr) {
+              // Ignore parse error and proceed with clearing
+            }
+          }
+
           // User logged out / not logged in
           setUser(null);
           await AsyncStorage.removeItem('user');
@@ -221,6 +247,54 @@ export const UserProvider = ({ children }) => {
     // Legacy support or fallback
     setUser(mockUserData);
     await AsyncStorage.setItem('user', JSON.stringify(mockUserData));
+  };
+
+  const loginWithDummyUser = async (type = 'FREE') => {
+    try {
+      const selectedType = (type || 'FREE').toUpperCase();
+      const dummyProfile = DUMMY_USERS[selectedType] || DUMMY_USERS.FREE;
+
+      const today = new Date().toISOString().split('T')[0];
+      let habitsToSet = [];
+      let breakHabitsToSet = [];
+      let extraHabitsToSet = '0';
+      let focusHistoryToSet = '{}';
+      let focusSessionsToSet = '0';
+      let lastFocusDateToSet = today;
+
+      if (selectedType === 'FREE') {
+        habitsToSet = DUMMY_HABITS_FREE;
+        breakHabitsToSet = DUMMY_BREAK_HABITS_FREE;
+        focusSessionsToSet = '1';
+        focusHistoryToSet = JSON.stringify({ [today]: 25 });
+      } else if (selectedType === 'PRO') {
+        habitsToSet = DUMMY_HABITS_PRO;
+        breakHabitsToSet = DUMMY_BREAK_HABITS_PRO;
+        focusSessionsToSet = DUMMY_FOCUS_DATA_PRO.focusSessionsToday.toString();
+        lastFocusDateToSet = DUMMY_FOCUS_DATA_PRO.lastFocusDate;
+        focusHistoryToSet = JSON.stringify(DUMMY_FOCUS_DATA_PRO.focusHistory);
+      }
+
+      await AsyncStorage.multiSet([
+        ['user', JSON.stringify(dummyProfile)],
+        ['userProfile', JSON.stringify(dummyProfile)],
+        ['isPro', JSON.stringify(dummyProfile.isPro)],
+        ['habits', JSON.stringify(habitsToSet)],
+        ['breakHabits', JSON.stringify(breakHabitsToSet)],
+        ['extraHabits', extraHabitsToSet],
+        ['focusHistory', focusHistoryToSet],
+        ['focusSessionsToday', focusSessionsToSet],
+        ['lastFocusDate', lastFocusDateToSet],
+        ['streakFreezes', selectedType === 'PRO' ? '5' : '1'],
+      ]);
+
+      setUser(dummyProfile);
+      setIsPro(dummyProfile.isPro);
+      return { success: true, user: dummyProfile };
+    } catch (e) {
+      console.error('Error logging in with dummy user:', e);
+      return { success: false, error: e.message };
+    }
   };
 
   const googleLogin = async () => {
@@ -395,11 +469,38 @@ export const UserProvider = ({ children }) => {
 
   const deleteAccount = async () => {
     try {
+      if (user?.isDummy) {
+        const keysToClear = [
+          'user',
+          'userProfile',
+          'isPro',
+          'habits',
+          'breakHabits',
+          'extraHabits',
+          'focusHistory',
+          'focusSessionsToday',
+          'lastFocusDate',
+          'adRewardExpiry'
+        ];
+        await AsyncStorage.multiRemove(keysToClear);
+        setUser(null);
+        setIsPro(false);
+        return { success: true };
+      }
+
       const currentUser = auth.currentUser;
       if (currentUser) {
         // Alışkanlıklar bulut verisini de sil
-        await deleteDoc(doc(db, 'habits', currentUser.uid));
-        await deleteDoc(doc(db, 'users', currentUser.uid));
+        try {
+          await deleteDoc(doc(db, 'habits', currentUser.uid));
+        } catch (hErr) {
+          console.warn('⚠️ Firestore habits deleteDoc error:', hErr?.message);
+        }
+        try {
+          await deleteDoc(doc(db, 'users', currentUser.uid));
+        } catch (uErr) {
+          console.warn('⚠️ Firestore users deleteDoc error:', uErr?.message);
+        }
         await firebaseDeleteUser(currentUser);
       }
       const keysToClear = [
@@ -419,7 +520,12 @@ export const UserProvider = ({ children }) => {
       setIsPro(false);
       return { success: true };
     } catch (e) {
-      return { success: false, error: e.message };
+      console.error('Delete account error:', e);
+      return {
+        success: false,
+        error: e.message,
+        code: e.code
+      };
     }
   };
 
@@ -446,6 +552,7 @@ export const UserProvider = ({ children }) => {
       user,
       isPro,
       login,
+      loginWithDummyUser,
       googleLogin,
       emailLogin,
       emailSignup,

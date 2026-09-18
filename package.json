@@ -5,7 +5,7 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
-    "android-win": "cross-env JAVA_HOME=\"C:/Program Files/Java/jdk-17\" ANDROID_HOME=C:/Users/SALIHN~1/AppData/Local/Android/Sdk HOME=D:/gradle_cache USERPROFILE=D:/gradle_cache GRADLE_USER_HOME=D:/gradle_cache/.gradle npx expo run:android",
+    "android-win": "cross-env JAVA_HOME=D:/jdk-17 ANDROID_HOME=C:/Users/SALIHN~1/AppData/Local/Android/Sdk HOME=D:/gradle_cache USERPROFILE=D:/gradle_cache GRADLE_USER_HOME=D:/gradle_cache/.gradle npx expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "eject": "expo eject"

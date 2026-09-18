@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Modal, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -118,7 +118,7 @@ const BreakStreakScreen = ({ navigation }) => {
                     </Text>
                 </View>
                 {!isPro && (
-                    <TouchableOpacity onPress={() => navigation.navigate('Paywall')}>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Paywall')}>
                         <LinearGradient
                             colors={[colors.primary, colors.secondary]}
                             style={styles.proBadge}
@@ -158,7 +158,7 @@ const BreakStreakScreen = ({ navigation }) => {
                     breakHabits.map((habit) => {
                         const daysSince = getDaysSince(habit.lastBreakDate, habit.createdAt);
                         return (
-                            <TouchableOpacity
+                            <TouchableOpacity activeOpacity={0.7}
                                 key={habit.id}
                                 style={[styles.habitCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                                 onLongPress={() => openModal(habit)}
@@ -185,7 +185,7 @@ const BreakStreakScreen = ({ navigation }) => {
                                         )}
                                     </View>
                                 </View>
-                                <TouchableOpacity
+                                <TouchableOpacity activeOpacity={0.7}
                                     style={[styles.breakButton, { backgroundColor: '#EF4444' }]}
                                     onPress={() => {
                                         setPendingBreakId(habit.id);
@@ -202,7 +202,7 @@ const BreakStreakScreen = ({ navigation }) => {
             </ScrollView>
 
             {/* Add Button */}
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
                 style={[styles.addButton, { backgroundColor: colors.primary }]}
                 onPress={() => openModal()}
             >
@@ -216,40 +216,42 @@ const BreakStreakScreen = ({ navigation }) => {
                 animationType="slide"
                 onRequestClose={closeModal}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-                        <View style={styles.modalHeader}>
-                            <Text style={[styles.modalTitle, { color: colors.text }]}>
-                                {editingHabit ? t('editHabit') : t('addBreakHabit')}
-                            </Text>
-                            {editingHabit && (
-                                <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
-                                    <Trash2 size={20} color="#EF4444" />
-                                </TouchableOpacity>
-                            )}
-                        </View>
-
-                        <TextInput
-                            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-                            placeholder={t('habitNamePlaceholder') || "e.g. Smoking"}
-                            placeholderTextColor={colors.textSecondary}
-                            value={habitName}
-                            onChangeText={setHabitName}
-                            autoFocus
-                        />
-
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity onPress={closeModal} style={styles.modalButton}>
-                                <Text style={{ color: colors.textSecondary }}>{t('cancel')}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={handleSave} style={[styles.modalButton, { backgroundColor: colors.primary }]}>
-                                <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                                    {editingHabit ? t('save') || 'Save' : t('create') || 'Create'}
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+                            <View style={styles.modalHeader}>
+                                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                                    {editingHabit ? t('editHabit') : t('addBreakHabit')}
                                 </Text>
-                            </TouchableOpacity>
+                                {editingHabit && (
+                                    <TouchableOpacity activeOpacity={0.7} onPress={handleDelete} style={styles.deleteButton}>
+                                        <Trash2 size={20} color="#EF4444" />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            <TextInput
+                                style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                                placeholder={t('habitNamePlaceholder') || "e.g. Smoking"}
+                                placeholderTextColor={colors.textSecondary}
+                                value={habitName}
+                                onChangeText={setHabitName}
+                                autoFocus
+                            />
+
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity activeOpacity={0.7} onPress={closeModal} style={styles.modalButton}>
+                                    <Text style={{ color: colors.textSecondary }}>{t('cancel')}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity activeOpacity={0.7} onPress={handleSave} style={[styles.modalButton, { backgroundColor: colors.primary }]}>
+                                    <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                                        {editingHabit ? t('save') || 'Save' : t('create') || 'Create'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
 
             {/* Confirmation Modal */}
@@ -272,13 +274,13 @@ const BreakStreakScreen = ({ navigation }) => {
                         </Text>
 
                         <View style={styles.modalButtons}>
-                            <TouchableOpacity
+                            <TouchableOpacity activeOpacity={0.7}
                                 onPress={() => setIsConfirmModalVisible(false)}
                                 style={[styles.modalButton, { flex: 1, alignItems: 'center' }]}
                             >
                                 <Text style={{ color: colors.textSecondary }}>{t('cancel')}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
+                            <TouchableOpacity activeOpacity={0.7}
                                 onPress={() => {
                                     if (confirmType === 'delete') {
                                         deleteBreakHabit(pendingBreakId);
@@ -302,7 +304,7 @@ const BreakStreakScreen = ({ navigation }) => {
 
             {/* Banner Ad */}
             {!isPro && (
-                <TouchableOpacity
+                <TouchableOpacity activeOpacity={0.7}
                     style={[styles.bannerAd, { backgroundColor: colors.surface, borderTopColor: colors.border }]}
                     onPress={() => navigation.navigate('Paywall')}
                 >

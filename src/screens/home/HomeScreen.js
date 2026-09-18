@@ -5,7 +5,7 @@ import { useUser } from '../../context/UserContext';
 import { useHabits } from '../../context/HabitContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, CheckCircle, XCircle, AlertTriangle, TrendingUp, Calendar } from 'lucide-react-native';
+import { ChevronRight, CheckCircle, XCircle, AlertTriangle, TrendingUp, Calendar, Settings as SettingsIcon, Sparkles, Shield } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import Config from '../../config/Config';
 
@@ -36,6 +36,16 @@ const HomeScreen = ({ navigation }) => {
   }, []);
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+  // Habits in danger of streak loss
+  const habitsInDanger = (habits || []).filter(h =>
+    !h.completedDates?.includes(yesterdayStr) &&
+    !h.frozenDates?.includes(yesterdayStr) &&
+    (h.streak > 0 || (h.completedDates && h.completedDates.length > 0))
+  );
 
   // Stats
   const incompleteHabits = (habits || []).filter(h => !h.completedDates.includes(todayStr));
@@ -83,7 +93,7 @@ const HomeScreen = ({ navigation }) => {
   const renderActiveFocus = () => {
     if (focusState.sessionCompleted) {
       return (
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           style={[styles.section, { backgroundColor: colors.surface, borderColor: '#10B981', borderWidth: 2 }]}
           onPress={() => navigation.navigate('Focus')}
         >
@@ -103,7 +113,7 @@ const HomeScreen = ({ navigation }) => {
     if (focusState.elapsedSeconds === 0 && !focusState.isActive) return null;
 
     return (
-      <TouchableOpacity
+      <TouchableOpacity activeOpacity={0.7}
         style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: 2 }]}
         onPress={() => navigation.navigate('Focus')}
       >
@@ -128,17 +138,83 @@ const HomeScreen = ({ navigation }) => {
         <Text style={[styles.greetingSub, { color: colors.textSecondary }]}>{t('welcome')}</Text>
         <Text style={[styles.greetingTitle, { color: colors.text }]}>{user?.name || 'Guest'}</Text>
       </View>
-      <TouchableOpacity onPress={() => navigation.navigate('Paywall')}>
+      <View style={styles.headerActions}>
         {!isPro && (
-          <LinearGradient
-            colors={[colors.primary, colors.secondary]}
-            style={styles.proBadge}
-          >
-            <Text style={styles.proBadgeText}>PRO</Text>
-          </LinearGradient>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Paywall')}>
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              style={styles.proBadge}
+            >
+              <Text style={styles.proBadgeText}>PRO</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         )}
-      </TouchableOpacity>
+        <TouchableOpacity activeOpacity={0.7}
+          onPress={() => navigation.navigate('Settings')}
+          style={[styles.settingsBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          activeOpacity={0.7}
+        >
+          <SettingsIcon size={20} color={colors.text} />
+        </TouchableOpacity>
+      </View>
     </View>
+  );
+
+  const renderStreakDangerAlert = () => {
+    if (habitsInDanger.length === 0) return null;
+
+    return (
+      <TouchableOpacity activeOpacity={0.7}
+        style={[styles.dangerAlertBox, { backgroundColor: 'rgba(6, 182, 212, 0.12)', borderColor: '#06B6D4' }]}
+        onPress={() => navigation.navigate('Habits')}
+        activeOpacity={0.8}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+          <View style={styles.iceShieldBox}>
+            <Shield size={18} color="#06B6D4" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#38BDF8', fontWeight: 'bold', fontSize: 13 }}>
+              ❄️ {habitsInDanger.length} {t('streakInDanger') || 'Alışkanlığın Serisi Dün Aksadı!'}
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 11, marginTop: 2 }}>
+              {t('rescueStreak') || 'Serini kurtarmak için dokun.'}
+            </Text>
+          </View>
+        </View>
+        <ChevronRight size={18} color="#38BDF8" />
+      </TouchableOpacity>
+    );
+  };
+
+  const renderAICoachInsight = () => (
+    <TouchableOpacity activeOpacity={0.7}
+      style={[styles.aiCoachBanner, { backgroundColor: colors.surface, borderColor: isPro ? '#8B5CF6' : colors.border }]}
+      onPress={() => navigation.navigate('Stats')}
+      activeOpacity={0.8}
+    >
+      <LinearGradient
+        colors={isPro ? ['rgba(139, 92, 246, 0.15)', 'rgba(217, 70, 239, 0.05)'] : ['rgba(255,255,255,0.03)', 'transparent']}
+        style={styles.aiCoachBannerGradient}
+      >
+        <View style={styles.aiBannerLeft}>
+          <LinearGradient colors={['#8B5CF6', '#D946EF']} style={styles.aiBannerIcon}>
+            <Sparkles size={16} color="white" />
+          </LinearGradient>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.aiBannerTitle, { color: colors.text }]}>
+              {t('aiCoachTitle') || '✨ Onyx AI Habit Coach'}
+            </Text>
+            <Text style={[styles.aiBannerDesc, { color: colors.textSecondary }]} numberOfLines={1}>
+              {isPro
+                ? (t('aiCoachSubtitle') || 'Haftalık kişiselleştirilmiş içgörülerin hazır.')
+                : (t('aiCoachTeaser') || 'Alışkanlıkların analiz edildi. Raporunu incele.')}
+            </Text>
+          </View>
+        </View>
+        <ChevronRight size={16} color={isPro ? '#A855F7' : colors.textSecondary} />
+      </LinearGradient>
+    </TouchableOpacity>
   );
 
   const renderShortReport = () => (
@@ -184,7 +260,7 @@ const HomeScreen = ({ navigation }) => {
     <View style={styles.sectionContainer}>
       <View style={styles.sectionHeaderRow}>
         <Text style={[styles.sectionHeading, { color: colors.text }]}>{t('incompleteHabits')}</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Habits')}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Habits')}>
           <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('viewAll')}</Text>
         </TouchableOpacity>
       </View>
@@ -196,7 +272,7 @@ const HomeScreen = ({ navigation }) => {
         </View>
       ) : (
         incompleteHabits.slice(0, 3).map((habit, index) => (
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             key={habit.id}
             style={[styles.miniHabitCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => navigation.navigate('Habits')}
@@ -214,7 +290,7 @@ const HomeScreen = ({ navigation }) => {
     <View style={styles.sectionContainer}>
       <View style={styles.sectionHeaderRow}>
         <Text style={[styles.sectionHeading, { color: colors.text }]}>{t('breakStreakTodos')}</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('BreakStreak')}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('BreakStreak')}>
           <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('viewAll')}</Text>
         </TouchableOpacity>
       </View>
@@ -228,7 +304,7 @@ const HomeScreen = ({ navigation }) => {
           {activeBreakHabits.map(habit => {
             const daysClean = getDaysSince(habit.lastBreakDate, habit.createdAt);
             return (
-              <TouchableOpacity
+              <TouchableOpacity activeOpacity={0.7}
                 key={habit.id}
                 style={[styles.breakCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={() => navigation.navigate('BreakStreak')}
@@ -250,7 +326,9 @@ const HomeScreen = ({ navigation }) => {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {renderHeader()}
+        {renderStreakDangerAlert()}
         {renderActiveFocus()}
+        {renderAICoachInsight()}
         {renderShortReport()}
         {renderIncompleteHabits()}
         {renderBreakStreaks()}
@@ -288,6 +366,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 24,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  settingsBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   greetingSub: { fontSize: 14 },
   greetingTitle: { fontSize: 24, fontWeight: 'bold' },
@@ -424,10 +515,61 @@ const styles = StyleSheet.create({
 
   // Banner
   bannerAdContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: 'absolute',
+    bottom: 0,
     width: '100%',
-    backgroundColor: 'transparent',
+    alignItems: 'center',
+  },
+  dangerAlertBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  iceShieldBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(6, 182, 212, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aiCoachBanner: {
+    borderRadius: 18,
+    borderWidth: 1,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  aiCoachBannerGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  aiBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    marginRight: 8,
+  },
+  aiBannerIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aiBannerTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  aiBannerDesc: {
+    fontSize: 11,
+    marginTop: 1,
   },
 });
 

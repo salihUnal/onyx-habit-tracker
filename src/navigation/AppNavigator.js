@@ -78,13 +78,6 @@ const MainTabs = () => {
           tabBarIcon: ({ color, size }) => <Unlink size={size} color={color} />
         }}
       />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />
-        }}
-      />
     </Tab.Navigator>
   );
 };
@@ -130,6 +123,7 @@ const AppNavigator = () => {
         ) : (
           <>
             <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen
               name="Paywall"
               component={PaywallScreen}

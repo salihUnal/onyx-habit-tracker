@@ -7,8 +7,12 @@ export const colors = {
     text: '#FAFAFA', // Zinc 50
     textSecondary: '#A1A1AA', // Zinc 400
     border: '#27272A', // Zinc 800
-    success: '#22C55E', // Green 500
-    error: '#EF4444', // Red 500
+    success: '#10B981',
+    error: '#EF4444',
+    warning: '#F59E0B',
+    info: '#3B82F6',
+    accent: '#8B5CF6',
+    gold: '#FFD700',
     card: '#18181B',
     notification: '#F472B6',
   },
@@ -20,8 +24,12 @@ export const colors = {
     text: '#18181B', // Zinc 900
     textSecondary: '#71717A', // Zinc 500
     border: '#E4E4E7', // Zinc 200
-    success: '#16A34A', // Green 600
-    error: '#DC2626', // Red 600
+    success: '#10B981',
+    error: '#EF4444',
+    warning: '#F59E0B',
+    info: '#3B82F6',
+    accent: '#8B5CF6',
+    gold: '#FFD700',
     card: '#FFFFFF',
     notification: '#DB2777',
   }

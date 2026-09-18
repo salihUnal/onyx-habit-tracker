@@ -65,10 +65,10 @@ const SocialShareScreen = ({ route, navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={theme.colors.text} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleShare} style={[styles.shareButton, { backgroundColor: theme.colors.primary }]}>
+        <TouchableOpacity activeOpacity={0.7} onPress={handleShare} style={[styles.shareButton, { backgroundColor: theme.colors.primary }]}>
           <Text style={styles.shareButtonText}>{t('shareToStory')}</Text>
         </TouchableOpacity>
       </View>
@@ -105,7 +105,7 @@ const SocialShareScreen = ({ route, navigation }) => {
       </View>
 
       {!isPro && (
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           style={styles.removeWatermarkButton}
           onPress={() => navigation.navigate('Paywall')}
         >

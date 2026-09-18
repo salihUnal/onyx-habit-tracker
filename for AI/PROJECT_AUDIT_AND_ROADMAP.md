@@ -45,6 +45,24 @@ Aşağıdaki temel yasal, güvenlik ve mağaza politikası maddeleri başarıyla
 7. **Geliştirici Test Butonunun Güvenliği:**
    - `SettingsScreen.js` altındaki "DEV: Free User Mode / Reset Pro" butonu `__DEV__` koşuluna bağlanarak mağaza incelemelerinde görünmeyecek şekilde izole edildi.
 
+8. **Dummy / Test Kullanıcıları Altyapısı (2026-09-12):**
+   - `src/constants/dummyData.js` oluşturularak Alex Rivera (Free Tester - 3 Alışkanlık Sınırı), Sarah Connor (Pro Tester - 6 Alışkanlık, 42 Günlük Streak) ve Temiz Yeni Kullanıcı hazır veri setleri kuruldu.
+   - `AuthScreen.js` ve `SettingsScreen.js` üzerinden tek tıkla test kullanıcıları arasında geçiş yapabilen test aracı devreye alındı.
+
+9. **5 Sekmeli Alt Bar Mimarisi ve Ergonomi (2026-09-12):**
+   - Alt barda 6 olan sekme sayısı 5'e (Home, Habits, Stats, Focus, BreakStreak) düşürüldü.
+   - `SettingsScreen` alt menüden çıkarılarak `HomeScreen` sağ üst başlığına modern bir profil/ayarlar butonu olarak entegre edildi.
+
+10. **Paywall Dönüşüm ve Ret Riski Düzenlemesi (2026-09-12):**
+    - `PaywallScreen.js` üzerindeki yanıltıcı "Pro Widgetlar" vaadi mağaza reddini önlemek için "Özel Neon Temalar & Rozetler" olarak güncellendi.
+    - Yıllık pakete küresel dönüşüm oranını katlayan "EN POPÜLER - %50 TASARRUF" rozeti ve "3 Gün Ücretsiz Deneme" vurgusu eklendi.
+
+11. **Hesap Silme Re-Authentication Güvenliği (2026-09-12):**
+    - `UserContext.js` ve `SettingsScreen.js` üzerinde Firebase `auth/requires-recent-login` hatasını yakalayan ve kullanıcıyı doğru yönlendiren akış kuruldu (Apple Guideline 5.1.1(v) uyumu).
+
+12. **Firestore Güvenlik Kuralları (2026-09-12):**
+    - Proje kökünde `firestore.rules` dosyası oluşturuldu. 30 günlük test modunun dolmasıyla oluşabilecek kilitlenme engellendi.
+
 ---
 
 ## 🔴 SEVİYE 1: KRİTİK - YASAL RİSKLER, CEZAİ SORUMLULUK VE KESİN MAĞAZA REDLERİ (BLOCKER)
@@ -267,13 +285,14 @@ Sadece reklam geliriyle bir alışkanlık takip uygulamasından ciddi pasif geli
 | **Faz 1** | iOS `app.json` izin açıklamaları (Fotoğraf/Kamera) eklenmesi | 🔴 ACİL / DERLEME | ✅ TAMAMLANDI |
 | **Faz 2** | RevenueCat gerçek mağaza ürünleri ve canlı API anahtarları | 🟡 YÜKSEK / GELİR | 🔜 Bekliyor |
 | **Faz 2** | Google UMP (GDPR Avrupa Onay Formu) entegrasyonu | 🟡 YÜKSEK / GELİR | ✅ TAMAMLANDI |
-| **Faz 2** | Paywall UI/UX iyileştirmesi (Free trial rozeti, indirim vurgusu) | 🟡 YÜKSEK / GELİR | 🔜 Bekliyor |
+| **Faz 2** | Paywall UI/UX iyileştirmesi (Free trial rozeti, indirim vurgusu) | 🟡 YÜKSEK / GELİR | ✅ TAMAMLANDI |
 | **Faz 2** | Firebase Hosting ile Gizlilik/Şartlar Web Sayfalarını Yayına Alma (`onyx-habit-tracker.web.app`) | 🟡 YÜKSEK / MAĞAZA | 🔜 Planlandı (Sonra Yapılacak) |
-| **Faz 3** | Firestore güvenlik kurallarının yayına alınması | 🔵 ORTA / GÜVENLİK | 🔜 Bekliyor |
-| **Faz 3** | Hesap silme re-authentication hata koruması | 🔵 ORTA / MAĞAZA | 🔜 Bekliyor |
+| **Faz 3** | Firestore güvenlik kurallarının yayına alınması | 🔵 ORTA / GÜVENLİK | ✅ TAMAMLANDI |
+| **Faz 3** | Hesap silme re-authentication hata koruması | 🔵 ORTA / MAĞAZA | ✅ TAMAMLANDI |
 | **Faz 3** | Sentry / Crashlytics çökme raporlama kurulumu | 🔵 ORTA / KALİTE | 🔜 Bekliyor |
 | **Faz 4** | Dil çeviri eksiklerinin (hardcoded Türkçe metinler) tamamlanması | 🟢 DÜŞÜK / UX | ✅ TAMAMLANDI |
-| **Faz 4** | Alt tab barın 5 sekmeye sadeleştirilip Settings'in yukarı alınması | 🟢 DÜŞÜK / UX | 🔜 Bekliyor |
+| **Faz 4** | Alt tab barın 5 sekmeye sadeleştirilip Settings'in yukarı alınması | 🟢 DÜŞÜK / UX | ✅ TAMAMLANDI |
+| **Faz 4** | Dummy/Mock Kullanıcı Test Sistemi (Free / Pro profilleri) | 🟢 DÜŞÜK / TEST | ✅ TAMAMLANDI |
 | **Faz 4** | Alternatif gelir: Streak Freeze mikro ödemesi & AI Habit Coach | 🟢 GELECEK VİZYON | 🔜 Bekliyor |
 
 ---

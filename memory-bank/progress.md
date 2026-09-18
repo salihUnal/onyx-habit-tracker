@@ -6,6 +6,7 @@
 - **Base Habit Tracking:** Users can add and view habits (stored in AsyncStorage).
 - **Localization Infrastructure:** Support for 7 languages is in place.
 - **Theme Switching:** Dark and Light modes supported.
+- **Multi-Agent QA & Development Automation:** 3-Ajanlı (standard-tester, pro-tester, developer-agent) test döngüsü ve 2 günde bir otomatik çalışan arka plan cron kurgusu aktif. Raporlar `for AI/` altında tutuluyor.
 - **Partial Monetization:** Integration with `react-native-purchases` and `react-native-google-mobile-ads` is started.
 
 ## Current Status
@@ -19,6 +20,7 @@ The project is in the "Transition from Demo to Production" phase. While the visu
 
 ### High Priority
 
+- [x] Pro Tester bug fixes (Empty state, KeyboardAvoidingView fixes, activeOpacity, Colors).
 - [x] Fix Google Login logging (added detailed error logs).
 - [x] Implement Email Login and Signup.
 - [/] Implement robust Phone Authentication (structure ready, expo-firebase-recaptcha dependencies resolved).

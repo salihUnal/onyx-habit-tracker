@@ -70,7 +70,7 @@ const OnboardingScreen = ({ navigation, onComplete }) => {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
             {/* Language Button */}
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
                 style={[styles.langButton, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
                 onPress={() => setLanguageModalVisible(true)}
             >
@@ -108,7 +108,7 @@ const OnboardingScreen = ({ navigation, onComplete }) => {
                     ))}
                 </View>
 
-                <TouchableOpacity onPress={handleNext} style={styles.buttonContainer}>
+                <TouchableOpacity activeOpacity={0.7} onPress={handleNext} style={styles.buttonContainer}>
                     <LinearGradient
                         colors={currentSlide.colors}
                         style={styles.button}
@@ -128,7 +128,7 @@ const OnboardingScreen = ({ navigation, onComplete }) => {
                         <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('selectLanguage')}</Text>
                         <ScrollView style={{ maxHeight: 300 }}>
                             {languages.map(lang => (
-                                <TouchableOpacity
+                                <TouchableOpacity activeOpacity={0.7}
                                     key={lang.code}
                                     style={[styles.langItem, { borderBottomColor: theme.colors.border }]}
                                     onPress={() => { setLanguage(lang.code); setLanguageModalVisible(false); }}
@@ -138,7 +138,7 @@ const OnboardingScreen = ({ navigation, onComplete }) => {
                                 </TouchableOpacity>
                             ))}
                         </ScrollView>
-                        <TouchableOpacity style={[styles.closeButton, { backgroundColor: 'rgba(255,255,255,0.1)' }]} onPress={() => setLanguageModalVisible(false)}>
+                        <TouchableOpacity activeOpacity={0.7} style={[styles.closeButton, { backgroundColor: 'rgba(255,255,255,0.1)' }]} onPress={() => setLanguageModalVisible(false)}>
                             <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
                         </TouchableOpacity>
                     </View>

@@ -38,7 +38,7 @@ const WidgetStoreScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: theme.colors.text }]}>{t('widgetStore')}</Text>
@@ -50,7 +50,7 @@ const WidgetStoreScreen = ({ navigation }) => {
         </Text>
 
         {/* Basic Widget */}
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           style={[
             styles.card,
             {
@@ -77,7 +77,7 @@ const WidgetStoreScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         {/* Premium Widget */}
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           style={[
             styles.card,
             {

@@ -1,0 +1,285 @@
+{
+  "timestamp": "2026-09-18T11:52:20.150Z",
+  "i18n": {
+    "missingKeys": {},
+    "totalLanguages": 7,
+    "totalKeysEn": 0
+  },
+  "screens": [
+    {
+      "screen": "AuthScreen.js",
+      "path": "src\\screens\\auth\\AuthScreen.js",
+      "hasSafeArea": false,
+      "hasKeyboardAvoiding": false,
+      "hasTextInput": true,
+      "hasScrollView": true,
+      "usesTheme": true,
+      "hardcodedColors": [],
+      "hardcodedFixedDimensions": [
+        "width: 300",
+        "width: 300"
+      ]
+    },
+    {
+      "screen": "OnboardingScreen.js",
+      "path": "src\\screens\\auth\\OnboardingScreen.js",
+      "hasSafeArea": true,
+      "hasKeyboardAvoiding": false,
+      "hasTextInput": false,
+      "hasScrollView": true,
+      "usesTheme": true,
+      "hardcodedColors": [],
+      "hardcodedFixedDimensions": []
+    },
+    {
+      "screen": "BreakStreakScreen.js",
+      "path": "src\\screens\\break\\BreakStreakScreen.js",
+      "hasSafeArea": false,
+      "hasKeyboardAvoiding": false,
+      "hasTextInput": true,
+      "hasScrollView": true,
+      "usesTheme": true,
+      "hardcodedColors": [],
+      "hardcodedFixedDimensions": []
+    },
+    {
+      "screen": "FocusScreen.js",
+      "path": "src\\screens\\focus\\FocusScreen.js",
+      "hasSafeArea": false,
+      "hasKeyboardAvoiding": false,
+      "hasTextInput": true,
+      "hasScrollView": false,
+      "usesTheme": true,
+      "hardcodedColors": [],
+      "hardcodedFixedDimensions": []
+    },
+    {
+      "screen": "HabitsScreen.js",
+      "path": "src\\screens\\home\\HabitsScreen.js",
+      "hasSafeArea": false,
+      "hasKeyboardAvoiding": true,
+      "hasTextInput": true,
+      "hasScrollView": true,
+      "usesTheme": true,
+      "hardcodedColors": [],
+      "hardcodedFixedDimensions": []
+    },
+    {
+      "screen": "HomeScreen.js",
+      "path": "src\\screens\\home\\HomeScreen.js",
+      "hasSafeArea": false,
+      "hasKeyboardAvoiding": false,
+      "hasTextInput": false,
+      "hasScrollView": true,
+      "usesTheme": true,
+      "hardcodedColors": [],
+      "hardcodedFixedDimensions": []
+    },
+    {
+      "screen": "StatsScreen.js",
+      "path": "src\\screens\\home\\StatsScreen.js",
+      "hasSafeArea": false,
+      "hasKeyboardAvoiding": false,
+      "hasTextInput": false,
+      "hasScrollView": true,
+      "usesTheme": true,
+      "hardcodedColors": [],
+      "hardcodedFixedDimensions": []
+    },
+    {
+      "screen": "PaywallScreen.js",
+      "path": "src\\screens\\paywall\\PaywallScreen.js",
+      "hasSafeArea": false,
+      "hasKeyboardAvoiding": false,
+      "hasTextInput": false,
+      "hasScrollView": true,
+      "usesTheme": true,
+      "hardcodedColors": [],
+      "hardcodedFixedDimensions": []
+    },
+    {
+      "screen": "LegalModal.js",
+      "path": "src\\screens\\settings\\LegalModal.js",
+      "hasSafeArea": true,
+      "hasKeyboardAvoiding": false,
+      "hasTextInput": false,
+      "hasScrollView": true,
+      "usesTheme": true,
+      "hardcodedColors": [],
+      "hardcodedFixedDimensions": []
+    },
+    {
+      "screen": "SettingsScreen.js",
+      "path": "src\\screens\\settings\\SettingsScreen.js",
+      "hasSafeArea": false,
+      "hasKeyboardAvoiding": false,
+      "hasTextInput": true,
+      "hasScrollView": true,
+      "usesTheme": true,
+      "hardcodedColors": [],
+      "hardcodedFixedDimensions": []
+    },
+    {
+      "screen": "WidgetStoreScreen.js",
+      "path": "src\\screens\\settings\\WidgetStoreScreen.js",
+      "hasSafeArea": false,
+      "hasKeyboardAvoiding": false,
+      "hasTextInput": false,
+      "hasScrollView": true,
+      "usesTheme": true,
+      "hardcodedColors": [],
+      "hardcodedFixedDimensions": []
+    },
+    {
+      "screen": "SocialShareScreen.js",
+      "path": "src\\screens\\social\\SocialShareScreen.js",
+      "hasSafeArea": false,
+      "hasKeyboardAvoiding": false,
+      "hasTextInput": false,
+      "hasScrollView": false,
+      "usesTheme": true,
+      "hardcodedColors": [],
+      "hardcodedFixedDimensions": []
+    }
+  ],
+  "contexts": [
+    {
+      "context": "HabitContext.js",
+      "functionCount": 32,
+      "functions": [
+        "HabitProvider",
+        "mergeHabitData",
+        "mergeBreakHabitsData",
+        "loadFromCloud",
+        "syncWithCloud",
+        "loadHabits",
+        "loadBreakHabits",
+        "saveHabits",
+        "saveBreakHabits",
+        "loadExtraHabits",
+        "loadStreakFreezes",
+        "saveStreakFreezes",
+        "loadFocusStats",
+        "recordFocusSession",
+        "rewardExtraHabit",
+        "addHabit",
+        "startFocus",
+        "pauseFocus",
+        "stopFocus",
+        "getFocusTimeLeft",
+        "updateHabit",
+        "calculateStreak",
+        "toggleHabit",
+        "deleteHabit",
+        "addBreakHabit",
+        "toggleBreakHabit",
+        "deleteBreakHabit",
+        "repairStreak",
+        "useStreakFreeze",
+        "earnStreakFreezeWithAd",
+        "reloadAllHabitData",
+        "useHabits"
+      ]
+    },
+    {
+      "context": "LanguageContext.js",
+      "functionCount": 5,
+      "functions": [
+        "LanguageProvider",
+        "loadLanguage",
+        "setLanguage",
+        "t",
+        "useLanguage"
+      ]
+    },
+    {
+      "context": "ThemeContext.js",
+      "functionCount": 4,
+      "functions": [
+        "ThemeProvider",
+        "loadTheme",
+        "toggleTheme",
+        "useTheme"
+      ]
+    },
+    {
+      "context": "UserContext.js",
+      "functionCount": 17,
+      "functions": [
+        "UserProvider",
+        "initPurchases",
+        "checkUser",
+        "login",
+        "loginWithDummyUser",
+        "googleLogin",
+        "emailLogin",
+        "emailSignup",
+        "resetPassword",
+        "setPasswordForCurrentUser",
+        "logout",
+        "upgradeToPro",
+        "restorePurchases",
+        "resetToFree",
+        "deleteAccount",
+        "updateUser",
+        "useUser"
+      ]
+    }
+  ],
+  "dummyUsers": {
+    "valid": true,
+    "issues": []
+  },
+  "responsive": [
+    {
+      "screen": "AuthScreen.js",
+      "issue": "SafeAreaView veya useSafeAreaInsets doğrudan kullanılmamış. Çentik ve durum çubuğu taşması riski var."
+    },
+    {
+      "screen": "BreakStreakScreen.js",
+      "issue": "SafeAreaView veya useSafeAreaInsets doğrudan kullanılmamış. Çentik ve durum çubuğu taşması riski var."
+    },
+    {
+      "screen": "FocusScreen.js",
+      "issue": "TextInput bulunuyor ancak KeyboardAvoidingView veya ScrollView kullanılmamış. Küçük ekranlarda klavye inputu kapatabilir."
+    },
+    {
+      "screen": "FocusScreen.js",
+      "issue": "SafeAreaView veya useSafeAreaInsets doğrudan kullanılmamış. Çentik ve durum çubuğu taşması riski var."
+    },
+    {
+      "screen": "HabitsScreen.js",
+      "issue": "SafeAreaView veya useSafeAreaInsets doğrudan kullanılmamış. Çentik ve durum çubuğu taşması riski var."
+    },
+    {
+      "screen": "HomeScreen.js",
+      "issue": "SafeAreaView veya useSafeAreaInsets doğrudan kullanılmamış. Çentik ve durum çubuğu taşması riski var."
+    },
+    {
+      "screen": "StatsScreen.js",
+      "issue": "SafeAreaView veya useSafeAreaInsets doğrudan kullanılmamış. Çentik ve durum çubuğu taşması riski var."
+    },
+    {
+      "screen": "PaywallScreen.js",
+      "issue": "SafeAreaView veya useSafeAreaInsets doğrudan kullanılmamış. Çentik ve durum çubuğu taşması riski var."
+    },
+    {
+      "screen": "SettingsScreen.js",
+      "issue": "SafeAreaView veya useSafeAreaInsets doğrudan kullanılmamış. Çentik ve durum çubuğu taşması riski var."
+    },
+    {
+      "screen": "WidgetStoreScreen.js",
+      "issue": "SafeAreaView veya useSafeAreaInsets doğrudan kullanılmamış. Çentik ve durum çubuğu taşması riski var."
+    },
+    {
+      "screen": "SocialShareScreen.js",
+      "issue": "SafeAreaView veya useSafeAreaInsets doğrudan kullanılmamış. Çentik ve durum çubuğu taşması riski var."
+    }
+  ],
+  "pixelAndTheme": [
+    {
+      "screen": "AuthScreen.js",
+      "issue": "Sabit piksel genişliği tespit edildi (width: 300, width: 300). Küçük ekranlarda (iPhone SE / 375px) yatay taşmaya sebep olabilir."
+    }
+  ]
+}

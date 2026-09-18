@@ -1,8 +1,0 @@
-apk uygulmada ilk açılışta hala Erişim engellendi: onyx-habit-tracker tarafından gönderilen istek geçersiz
-
-salihyedekler@gmail.com
-onyx-habit-tracker geçersiz bir istek gönderdiğinden oturum açamazsınız. Daha sonra tekrar deneyebilir veya bu sorun hakkında geliştiriciyle iletişime geçebilirsiniz. Bu hata hakkında daha fazla bilgi
-onyx-habit-tracker geliştiricilerinden biriyseniz hata ayrıntılarını inceleyin.
-Hata 400: invalid_request hatası alıyorum. 
-
-ios için app oluşturmadım

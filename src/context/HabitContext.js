@@ -9,6 +9,9 @@ const defaultHabitContext = {
   addHabit: () => ({ success: false }),
   toggleHabit: () => { },
   deleteHabit: () => { },
+  streakFreezes: 1,
+  useStreakFreeze: () => ({ success: false }),
+  earnStreakFreezeWithAd: () => ({ success: false }),
 };
 
 const HabitContext = createContext(defaultHabitContext);
@@ -28,6 +31,7 @@ export const HabitProvider = ({ children }) => {
     elapsedSeconds: 0, // Accumulated elapsed time before current active session
     sessionCompleted: false
   });
+  const [streakFreezes, setStreakFreezes] = useState(1);
   const { isPro, user } = useUser();
 
   useEffect(() => {
@@ -35,6 +39,7 @@ export const HabitProvider = ({ children }) => {
     loadBreakHabits();
     loadExtraHabits();
     loadFocusStats();
+    loadStreakFreezes();
     if (user?.id) {
       loadFromCloud();
     }
@@ -183,6 +188,34 @@ export const HabitProvider = ({ children }) => {
       if (savedExpiry) setAdRewardExpiry(parseInt(savedExpiry, 10));
     } catch (e) {
       console.error('Failed to load extra habits', e);
+    }
+  };
+
+  const loadStreakFreezes = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('streakFreezes');
+      if (saved !== null) {
+        setStreakFreezes(parseInt(saved, 10));
+      } else {
+        setStreakFreezes(1);
+        await AsyncStorage.setItem('streakFreezes', '1');
+      }
+    } catch (e) {
+      console.error('Failed to load streak freezes', e);
+    }
+  };
+
+  const saveStreakFreezes = async (count) => {
+    setStreakFreezes(count);
+    try {
+      await AsyncStorage.setItem('streakFreezes', count.toString());
+      if (auth.currentUser) {
+        await setDoc(doc(db, 'habits', auth.currentUser.uid), {
+          streakFreezes: count,
+        }, { merge: true });
+      }
+    } catch (e) {
+      console.error('Failed to save streak freezes', e);
     }
   };
 
@@ -558,6 +591,55 @@ export const HabitProvider = ({ children }) => {
     saveHabits(newHabits);
   };
 
+  const useStreakFreeze = async (habitId) => {
+    if (!isPro && streakFreezes <= 0) {
+      return { success: false, reason: 'no_freezes' };
+    }
+
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    const newHabits = habits.map(habit => {
+      if (habit.id === habitId) {
+        const completed = habit.completedDates || [];
+        const frozen = habit.frozenDates || [];
+        const newCompleted = completed.includes(yesterdayStr) ? completed : [...completed, yesterdayStr];
+        const newFrozen = frozen.includes(yesterdayStr) ? frozen : [...frozen, yesterdayStr];
+        return {
+          ...habit,
+          completedDates: newCompleted,
+          frozenDates: newFrozen,
+          streak: calculateStreak(newCompleted),
+        };
+      }
+      return habit;
+    });
+
+    await saveHabits(newHabits);
+
+    if (!isPro) {
+      const nextFreezes = Math.max(0, streakFreezes - 1);
+      await saveStreakFreezes(nextFreezes);
+    }
+    return { success: true };
+  };
+
+  const earnStreakFreezeWithAd = async () => {
+    const nextFreezes = streakFreezes + 1;
+    await saveStreakFreezes(nextFreezes);
+    return { success: true, count: nextFreezes };
+  };
+
+  const reloadAllHabitData = async () => {
+    await loadHabits();
+    await loadBreakHabits();
+    await loadExtraHabits();
+    await loadFocusStats();
+    await loadStreakFreezes();
+  };
+
   return (
     <HabitContext.Provider value={{
       habits,
@@ -568,6 +650,9 @@ export const HabitProvider = ({ children }) => {
       rewardExtraHabit,
       extraHabits,
       repairStreak,
+      useStreakFreeze,
+      earnStreakFreezeWithAd,
+      streakFreezes,
       breakHabits,
       addBreakHabit,
       toggleBreakHabit,
@@ -579,7 +664,8 @@ export const HabitProvider = ({ children }) => {
       startFocus,
       pauseFocus,
       stopFocus,
-      getFocusTimeLeft
+      getFocusTimeLeft,
+      reloadAllHabitData
     }}>
       {children}
     </HabitContext.Provider>

@@ -1,19 +1,47 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useHabits } from '../../context/HabitContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useUser } from '../../context/UserContext';
-import { BarChart2, TrendingUp, Calendar, Award, Zap, ChevronRight, Clock, Lock } from 'lucide-react-native';
+import { BarChart2, TrendingUp, Calendar, Award, Zap, ChevronRight, Clock, Lock, Sparkles, RefreshCw, Flame, AlertCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { generateAICoachReport } from '../../services/AICoachService';
 
 const { width } = Dimensions.get('window');
 
 const StatsScreen = ({ navigation }) => {
     const theme = useTheme();
     const { habits, breakHabits, focusHistory } = useHabits();
-    const { t } = useLanguage();
-    const { isPro } = useUser();
+    const { t, language } = useLanguage();
+    const { isPro, user } = useUser();
+
+    // AI Coach State
+    const [coachReport, setCoachReport] = useState(null);
+    const [coachLoading, setCoachLoading] = useState(false);
+
+    const loadCoach = async (force = false) => {
+        setCoachLoading(true);
+        try {
+            const report = await generateAICoachReport({
+                habits,
+                breakHabits,
+                focusHistory,
+                language,
+                userName: user?.name || 'Champion',
+                forceRefresh: force,
+            });
+            setCoachReport(report);
+        } catch (e) {
+            console.log('Error generating AI coach report:', e);
+        } finally {
+            setCoachLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadCoach();
+    }, [habits, breakHabits, language, isPro]);
 
     // Calculate Weekly Completion Data
     const getWeeklyData = () => {
@@ -122,6 +150,160 @@ const StatsScreen = ({ navigation }) => {
                     />
                 </View>
 
+                {/* ✨ Onyx AI Habit Coach Card */}
+                <View style={[styles.aiCoachContainer, { backgroundColor: theme.colors.surface, borderColor: isPro ? '#8B5CF6' : theme.colors.border }]}>
+                    <LinearGradient
+                        colors={isPro ? ['rgba(139, 92, 246, 0.15)', 'rgba(217, 70, 239, 0.04)'] : ['rgba(255,255,255,0.02)', 'transparent']}
+                        style={styles.aiCoachGradient}
+                    >
+                        {/* AI Header */}
+                        <View style={styles.aiCoachHeader}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                <LinearGradient colors={['#8B5CF6', '#D946EF']} style={styles.aiSparkleBox}>
+                                    <Sparkles size={18} color="white" />
+                                </LinearGradient>
+                                <View>
+                                    <Text style={[styles.aiCoachTitle, { color: theme.colors.text }]}>
+                                        {t('aiCoachTitle') || '✨ Onyx AI Habit Coach'}
+                                    </Text>
+                                    <Text style={{ fontSize: 12, color: theme.colors.textSecondary }}>
+                                        {t('aiCoachSubtitle') || 'Kişiselleştirilmiş Akıllı Analiz'}
+                                    </Text>
+                                </View>
+                            </View>
+                            {isPro && (
+                                <TouchableOpacity activeOpacity={0.7}
+                                    onPress={() => loadCoach(true)}
+                                    disabled={coachLoading}
+                                    style={styles.refreshBtn}
+                                >
+                                    {coachLoading ? (
+                                        <ActivityIndicator size="small" color="#A855F7" />
+                                    ) : (
+                                        <RefreshCw size={16} color="#A855F7" />
+                                    )}
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        {isPro ? (
+                            coachReport ? (
+                                <View style={styles.aiCoachBody}>
+                                    {/* Score & Assessment */}
+                                    <View style={styles.scoreRow}>
+                                        <View style={styles.scoreCircle}>
+                                            <Text style={styles.scoreValue}>{coachReport.habitScore}</Text>
+                                            <Text style={styles.scoreMax}>/100</Text>
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.scoreBadgeText, { color: theme.colors.primary }]}>
+                                                {coachReport.scoreBadge}
+                                            </Text>
+                                            <Text style={[styles.coachMoodText, { color: theme.colors.textSecondary }]}>
+                                                {coachReport.coachMood}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    {/* Power Habit */}
+                                    <View style={styles.insightBox}>
+                                        <View style={styles.insightRow}>
+                                            <Flame size={16} color="#F59E0B" fill="#F59E0B" />
+                                            <Text style={[styles.insightLabel, { color: theme.colors.text }]}>
+                                                {t('powerHabit') || 'En Güçlü Alışkanlık'}:
+                                            </Text>
+                                        </View>
+                                        <Text style={[styles.insightDesc, { color: theme.colors.textSecondary }]}>
+                                            {coachReport.powerHabitText}
+                                        </Text>
+                                    </View>
+
+                                    {/* Vulnerable Habit */}
+                                    {coachReport.vulnerableHabitTitle !== 'Yok' && coachReport.vulnerableHabitTitle !== 'None' && (
+                                        <View style={[styles.insightBox, { borderColor: 'rgba(239, 68, 68, 0.3)', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
+                                            <View style={styles.insightRow}>
+                                                <AlertCircle size={16} color="#EF4444" />
+                                                <Text style={[styles.insightLabel, { color: '#EF4444' }]}>
+                                                    {t('vulnerableHabit') || 'Dikkat Edilmeli'}:
+                                                </Text>
+                                            </View>
+                                            <Text style={[styles.insightDesc, { color: theme.colors.textSecondary }]}>
+                                                {coachReport.vulnerableHabitText}
+                                            </Text>
+                                        </View>
+                                    )}
+
+                                    {/* Actionable Tips */}
+                                    <View style={styles.tipsSection}>
+                                        <Text style={[styles.sectionHeading, { color: theme.colors.text, marginBottom: 8 }]}>
+                                            💡 {t('actionableTips') || 'AI Eylem Önerileri'}
+                                        </Text>
+                                        {(coachReport.actionableTips || []).map((tip, idx) => (
+                                            <View key={idx} style={styles.tipCard}>
+                                                <Text style={[styles.tipTitle, { color: theme.colors.primary }]}>• {tip.title}</Text>
+                                                <Text style={[styles.tipText, { color: theme.colors.textSecondary }]}>{tip.text}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+
+                                    {/* Quote */}
+                                    {coachReport.dailyQuote && (
+                                        <View style={styles.quoteBox}>
+                                            <Text style={styles.quoteText}>{coachReport.dailyQuote}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            ) : (
+                                <View style={{ padding: 24, alignItems: 'center' }}>
+                                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                                    <Text style={{ marginTop: 8, color: theme.colors.textSecondary, fontSize: 13 }}>
+                                        {t('analyzingHabits') || 'Alışkanlıkların analiz ediliyor...'}
+                                    </Text>
+                                </View>
+                            )
+                        ) : (
+                            /* Free User Teaser */
+                            <View style={styles.freeTeaserContainer}>
+                                <View style={styles.teaserBlurredArea}>
+                                    <View style={styles.scoreRow}>
+                                        <View style={[styles.scoreCircle, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+                                            <Text style={[styles.scoreValue, { color: theme.colors.textSecondary }]}>??</Text>
+                                            <Text style={styles.scoreMax}>/100</Text>
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.scoreBadgeText, { color: theme.colors.textSecondary }]}>
+                                                🔒 {t('habitScore') || 'Alışkanlık Sağlık Skoru'}
+                                            </Text>
+                                            <Text style={[styles.coachMoodText, { color: theme.colors.textSecondary }]}>
+                                                {t('aiCoachTeaser') || 'AI Koç haftalık disiplinini analiz etti. Skorunu & raporunu görmek için Pro\'ya geç.'}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </View>
+
+                                <TouchableOpacity activeOpacity={0.7}
+                                    style={styles.unlockBtn}
+                                    onPress={() => navigation.navigate('Paywall')}
+                                    activeOpacity={0.8}
+                                >
+                                    <LinearGradient
+                                        colors={['#8B5CF6', '#D946EF']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={styles.unlockBtnGradient}
+                                    >
+                                        <Sparkles size={16} color="white" />
+                                        <Text style={styles.unlockBtnText}>
+                                            {t('unlockAICoach') || 'Onyx Pro ile Kişisel AI Koçunu Aç'}
+                                        </Text>
+                                        <ChevronRight size={16} color="white" />
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </LinearGradient>
+                </View>
+
                 {/* Focus Time Card */}
                 <View style={[styles.chartContainer, { backgroundColor: theme.colors.surface, marginBottom: 20 }]}>
                     <View style={styles.chartHeader}>
@@ -183,7 +365,7 @@ const StatsScreen = ({ navigation }) => {
                         </View>
                     ) : (
                         <View style={styles.lockedContent}>
-                            <TouchableOpacity onPress={() => navigation.navigate('Paywall')}>
+                            <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Paywall')}>
                                 <LinearGradient colors={[theme.colors.primary + '30', 'transparent']} style={styles.blurOverlay}>
                                     <Text style={[styles.lockedText, { color: theme.colors.textSecondary }]}>
                                         {t('unlockToSeeAnalysis')}
@@ -196,7 +378,7 @@ const StatsScreen = ({ navigation }) => {
 
                 {/* Pro Features Call to Action if not Pro */}
                 {!isPro && (
-                    <TouchableOpacity
+                    <TouchableOpacity activeOpacity={0.7}
                         style={styles.proCard}
                         onPress={() => navigation.navigate('Paywall')}
                     >
@@ -279,7 +461,38 @@ const styles = StyleSheet.create({
     lockedHeader: { opacity: 0.5 },
     lockedContent: { alignItems: 'center', justifyContent: 'center', paddingVertical: 20 },
     blurOverlay: { padding: 20, borderRadius: 16, alignItems: 'center', width: '100%' },
-    lockedText: { fontSize: 13, fontWeight: '600', textAlign: 'center' }
+    lockedText: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
+
+    // AI Coach Styles
+    aiCoachContainer: { borderRadius: 24, borderWidth: 1.5, marginBottom: 20, overflow: 'hidden' },
+    aiCoachGradient: { padding: 20 },
+    aiCoachHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+    aiSparkleBox: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+    aiCoachTitle: { fontSize: 18, fontWeight: 'bold' },
+    refreshBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(139, 92, 246, 0.15)', justifyContent: 'center', alignItems: 'center' },
+    aiCoachBody: { gap: 12 },
+    scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: 'rgba(255,255,255,0.04)', padding: 14, borderRadius: 16 },
+    scoreCircle: { width: 58, height: 58, borderRadius: 29, backgroundColor: 'rgba(139, 92, 246, 0.2)', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#8B5CF6' },
+    scoreValue: { fontSize: 20, fontWeight: 'bold', color: '#FFFFFF' },
+    scoreMax: { fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: -2 },
+    scoreBadgeText: { fontSize: 15, fontWeight: 'bold', marginBottom: 2 },
+    coachMoodText: { fontSize: 13, lineHeight: 18 },
+    insightBox: { backgroundColor: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+    insightRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+    insightLabel: { fontSize: 13, fontWeight: 'bold' },
+    insightDesc: { fontSize: 13, lineHeight: 18 },
+    tipsSection: { marginTop: 4 },
+    sectionHeading: { fontSize: 13, fontWeight: 'bold' },
+    tipCard: { backgroundColor: 'rgba(255,255,255,0.03)', padding: 10, borderRadius: 10, marginBottom: 6 },
+    tipTitle: { fontSize: 13, fontWeight: 'bold', marginBottom: 2 },
+    tipText: { fontSize: 12, lineHeight: 16 },
+    quoteBox: { borderLeftWidth: 3, borderLeftColor: '#D946EF', paddingLeft: 12, paddingVertical: 4, marginTop: 4 },
+    quoteText: { fontStyle: 'italic', fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 16 },
+    freeTeaserContainer: { gap: 12 },
+    teaserBlurredArea: { opacity: 0.8 },
+    unlockBtn: { borderRadius: 16, overflow: 'hidden', marginTop: 4 },
+    unlockBtnGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: 16, gap: 8 },
+    unlockBtnText: { color: 'white', fontWeight: 'bold', fontSize: 14 },
 });
 
 export default StatsScreen;

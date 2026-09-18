@@ -7,7 +7,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useHabits } from '../../context/HabitContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Zap, Shield, Moon, Layout, Unlink, Check } from 'lucide-react-native';
+import { Zap, Shield, Moon, Layout, Unlink, Check, Sparkles } from 'lucide-react-native';
 import LegalModal from '../settings/LegalModal';
 
 let Purchases;
@@ -132,7 +132,7 @@ const PaywallScreen = ({ navigation, route }) => {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.closeButton}>
             <Ionicons name="close" size={28} color={theme.colors.text} />
           </TouchableOpacity>
         </View>
@@ -152,9 +152,19 @@ const PaywallScreen = ({ navigation, route }) => {
 
         <View style={styles.features}>
           <FeatureRow
+            icon={Sparkles}
+            title={t('aiCoachFeature') || "Kişisel AI Alışkanlık Koçu"}
+            description={t('aiCoachFeatureDesc') || "Yapay zeka destekli haftalık analiz ve kişisel koçluk"}
+          />
+          <FeatureRow
             icon={Zap}
             title={t('unlimitedHabits') || "Sınırsız Alışkanlık"}
             description={t('unlimitedHabitsDesc') || "İstediğin kadar alışkanlık takip et"}
+          />
+          <FeatureRow
+            icon={Shield}
+            title={t('unlimitedStreakFreezes') || "Sınırsız Seri Dondurma Kalkanı"}
+            description={t('unlimitedStreakFreezesDesc') || "Zorlukla kazandığın serileri asla kaybetme"}
           />
           <FeatureRow
             icon={Moon}
@@ -163,8 +173,8 @@ const PaywallScreen = ({ navigation, route }) => {
           />
           <FeatureRow
             icon={Layout}
-            title={t('proWidgets') || "Pro Widgetlar"}
-            description={t('proWidgetsDesc') || "Ana ekranını özelleştir"}
+            title={t('neonThemesAndBadges') || "Özel Neon Temalar & Rozetler"}
+            description={t('neonThemesAndBadgesDesc') || "Cyberpunk temalar ve premium rozetler"}
           />
           <FeatureRow
             icon={Unlink}
@@ -180,16 +190,26 @@ const PaywallScreen = ({ navigation, route }) => {
 
         <View style={styles.pricingContainer}>
           {offerings && offerings.availablePackages.map((pkg) => (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               key={pkg.identifier}
               onPress={() => handlePurchase(pkg)}
               activeOpacity={0.9}
+              style={{ position: 'relative' }}
             >
+              {pkg.packageType === 'ANNUAL' && (
+                <View style={styles.popularBadge}>
+                  <Text style={styles.popularBadgeText}>🔥 EN POPÜLER - %50 TASARRUF</Text>
+                </View>
+              )}
               <LinearGradient
                 colors={pkg.packageType === 'LIFETIME' ? [theme.colors.primary, theme.colors.secondary] : [theme.colors.card, theme.colors.card]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={[styles.purchaseButton, pkg.packageType !== 'LIFETIME' && { borderWidth: 1, borderColor: theme.colors.border }]}
+                style={[
+                  styles.purchaseButton,
+                  pkg.packageType !== 'LIFETIME' && { borderWidth: 1, borderColor: theme.colors.border },
+                  pkg.packageType === 'ANNUAL' && { borderWidth: 2, borderColor: theme.colors.primary }
+                ]}
               >
                 <Text style={[styles.purchaseButtonText, pkg.packageType !== 'LIFETIME' && { color: theme.colors.text }]}>
                   {pkg.product.title}
@@ -197,27 +217,41 @@ const PaywallScreen = ({ navigation, route }) => {
                 <Text style={[styles.priceText, pkg.packageType !== 'LIFETIME' && { color: theme.colors.textSecondary }]}>
                   {pkg.product.priceString} / {pkg.packageType === 'LIFETIME' ? t('lifetime') : pkg.packageType === 'ANNUAL' ? t('annual') : t('monthly')}
                 </Text>
+                {pkg.packageType === 'ANNUAL' && (
+                  <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '600', marginTop: 4 }}>
+                    🎁 3 Gün Ücretsiz Deneme ile Başla
+                  </Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           ))}
 
           {!offerings && (
-            <View style={{ gap: 4 }}>
-              <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.9}>
+            <View style={{ gap: 14 }}>
+              {/* Annual - Highlighted */}
+              <TouchableOpacity activeOpacity={0.7} onPress={() => handlePurchase(null)} activeOpacity={0.9} style={{ position: 'relative' }}>
+                <View style={styles.popularBadge}>
+                  <Text style={styles.popularBadgeText}>🔥 EN POPÜLER - %50 TASARRUF</Text>
+                </View>
+                <View style={[styles.purchaseButton, { backgroundColor: theme.colors.card, borderWidth: 2, borderColor: theme.colors.primary, shadowOpacity: 0.2, elevation: 4 }]}>
+                  <Text style={[styles.purchaseButtonText, { color: theme.colors.text }]}>{t('annualPro') || 'Yıllık Pro'}</Text>
+                  <Text style={[styles.priceText, { color: theme.colors.primary }]}>$19.99 / {t('annual') || 'Yıllık'}</Text>
+                  <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '600', marginTop: 4 }}>
+                    🎁 3 Gün Ücretsiz Deneme ile Başla
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Monthly */}
+              <TouchableOpacity activeOpacity={0.7} onPress={() => handlePurchase(null)} activeOpacity={0.9}>
                 <View style={[styles.purchaseButton, { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, shadowOpacity: 0.1, elevation: 2 }]}>
                   <Text style={[styles.purchaseButtonText, { color: theme.colors.text }]}>{t('monthlyPro') || 'Aylık Pro'}</Text>
                   <Text style={[styles.priceText, { color: theme.colors.textSecondary }]}>$2.99 / {t('monthly') || 'Aylık'}</Text>
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.9}>
-                <View style={[styles.purchaseButton, { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, shadowOpacity: 0.1, elevation: 2 }]}>
-                  <Text style={[styles.purchaseButtonText, { color: theme.colors.text }]}>{t('annualPro') || 'Yıllık Pro'}</Text>
-                  <Text style={[styles.priceText, { color: theme.colors.textSecondary }]}>$19.99 / {t('annual') || 'Yıllık'}</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.9}>
+              {/* Lifetime */}
+              <TouchableOpacity activeOpacity={0.7} onPress={() => handlePurchase(null)} activeOpacity={0.9}>
                 <LinearGradient
                   colors={[theme.colors.primary, theme.colors.secondary]}
                   start={{ x: 0, y: 0 }}
@@ -231,14 +265,14 @@ const PaywallScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          <TouchableOpacity onPress={handleRestore}>
+          <TouchableOpacity activeOpacity={0.7} onPress={handleRestore}>
             <Text style={[styles.restoreText, { color: theme.colors.textSecondary }]}>
               {t('restorePurchase') || 'Satın Alımı Geri Yükle'}
             </Text>
           </TouchableOpacity>
 
           {(trigger === 'habit_limit' || trigger === 'break_habit_limit' || trigger === 'streak_repair' || trigger === 'focus_limit') && (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               style={styles.watchAdButton}
               onPress={startAd}
             >
@@ -258,13 +292,13 @@ const PaywallScreen = ({ navigation, route }) => {
             </Text>
 
             <View style={styles.legalLinksRow}>
-              <TouchableOpacity onPress={() => { setLegalTab('privacy'); setLegalModalVisible(true); }}>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => { setLegalTab('privacy'); setLegalModalVisible(true); }}>
                 <Text style={[styles.legalLinkText, { color: theme.colors.primary }]}>
                   {t('privacyPolicy')}
                 </Text>
               </TouchableOpacity>
               <Text style={[styles.legalDivider, { color: theme.colors.textSecondary }]}>•</Text>
-              <TouchableOpacity onPress={() => { setLegalTab('terms'); setLegalModalVisible(true); }}>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => { setLegalTab('terms'); setLegalModalVisible(true); }}>
                 <Text style={[styles.legalLinkText, { color: theme.colors.primary }]}>
                   {Platform.OS === 'ios' ? `${t('termsOfService')} (${t('eula')})` : t('termsOfService')}
                 </Text>
@@ -291,7 +325,7 @@ const PaywallScreen = ({ navigation, route }) => {
             </LinearGradient>
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Harika!</Text>
             <Text style={[styles.modalText, { color: theme.colors.textSecondary }]}>{successMessage}</Text>
-            <TouchableOpacity onPress={closeSuccessModal} style={[styles.modalButton, { backgroundColor: theme.colors.primary }]}>
+            <TouchableOpacity activeOpacity={0.7} onPress={closeSuccessModal} style={[styles.modalButton, { backgroundColor: theme.colors.primary }]}>
               <Text style={styles.modalButtonText}>Tamam</Text>
             </TouchableOpacity>
           </View>
@@ -385,6 +419,23 @@ const styles = StyleSheet.create({
   },
   pricingContainer: {
     marginTop: 'auto',
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: -12,
+    right: 20,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
+    zIndex: 10,
+    elevation: 5,
+  },
+  popularBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   purchaseButton: {
     padding: 24,

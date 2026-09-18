@@ -5,7 +5,7 @@ import { useUser } from '../../context/UserContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useHabits } from '../../context/HabitContext';
 import { Ionicons } from '@expo/vector-icons';
-import { Globe, Moon, LogOut, Layout, User, Crown, Edit2, Camera, Image as ImageIcon, X, Shield, Lock } from 'lucide-react-native';
+import { Globe, Moon, LogOut, Layout, User, Crown, Edit2, Camera, Image as ImageIcon, X, Shield, Lock, ChevronLeft, Sparkles, RefreshCw } from 'lucide-react-native';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import Config from '../../config/Config';
@@ -14,9 +14,9 @@ import LegalModal from './LegalModal';
 const SettingsScreen = ({ navigation }) => {
     const theme = useTheme();
     const userContext = useUser();
-    const { user, logout, isPro, updateUser, resetToFree, setPasswordForCurrentUser } = userContext;
+    const { user, logout, isPro, updateUser, resetToFree, setPasswordForCurrentUser, loginWithDummyUser } = userContext;
     const { language, setLanguage, t } = useLanguage();
-    const { habits } = useHabits();
+    const { habits, reloadAllHabitData } = useHabits();
 
     // Calculate stats
     const totalHabits = habits.length;
@@ -179,7 +179,7 @@ const SettingsScreen = ({ navigation }) => {
                                 </View>
                             )}
                         </View>
-                        <TouchableOpacity style={styles.editButton} onPress={openEditProfile}>
+                        <TouchableOpacity activeOpacity={0.7} style={styles.editButton} onPress={openEditProfile}>
                             <Edit2 size={16} color="#FFFFFF" />
                         </TouchableOpacity>
                     </View>
@@ -217,7 +217,7 @@ const SettingsScreen = ({ navigation }) => {
     };
 
     const SettingItem = ({ icon: Icon, title, value, onPress, isSwitch, switchValue, onSwitchChange }) => (
-        <TouchableOpacity style={[styles.item, { backgroundColor: theme.colors.surface }]} onPress={onPress} disabled={isSwitch}>
+        <TouchableOpacity activeOpacity={0.7} style={[styles.item, { backgroundColor: theme.colors.surface }]} onPress={onPress} disabled={isSwitch}>
             <View style={styles.itemLeft}>
                 <View style={[styles.iconBox, { backgroundColor: theme.colors.background }]}>
                     <Icon size={20} color={theme.colors.text} />
@@ -260,7 +260,22 @@ const SettingsScreen = ({ navigation }) => {
                     style: 'destructive',
                     onPress: async () => {
                         const result = await userContext.deleteAccount();
-                        if (!result.success) Alert.alert(t('error'), result.error);
+                        if (!result.success) {
+                            if (result.code === 'auth/requires-recent-login' || result.error?.includes('requires-recent-login')) {
+                                Alert.alert(
+                                    t('securityWarning') || 'Güvenlik Doğrulaması Gerekli',
+                                    'Hesabınızı silebilmek için oturumunuzun yeni olması gerekmektedir. Lütfen çıkış yapıp tekrar giriş yaptıktan sonra silme işlemini deneyiniz.',
+                                    [
+                                        { text: t('cancel'), style: 'cancel' },
+                                        { text: t('logOut'), onPress: () => userContext.logout() }
+                                    ]
+                                );
+                            } else {
+                                Alert.alert(t('error'), result.error || 'Hesap silinemedi.');
+                            }
+                        } else {
+                            Alert.alert(t('success') || 'Başarılı', 'Hesabınız ve tüm verileriniz kalıcı olarak silindi.');
+                        }
                     }
                 }
             ]
@@ -269,7 +284,13 @@ const SettingsScreen = ({ navigation }) => {
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('settings')}</Text>
+            <View style={styles.topBar}>
+                <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7}>
+                    <ChevronLeft size={24} color={theme.colors.text} />
+                </TouchableOpacity>
+                <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('settings')}</Text>
+                <View style={{ width: 40 }} />
+            </View>
             <UserPanel />
             <ScrollView contentContainerStyle={styles.content}>
                 <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>{t('preferences')}</Text>
@@ -293,19 +314,51 @@ const SettingsScreen = ({ navigation }) => {
 
                 {/* Dev Tool for Testing (Only in Development) */}
                 {__DEV__ && (
-                    <TouchableOpacity
-                        style={{ marginTop: 40, alignItems: 'center', opacity: 0.3 }}
-                        onPress={() => {
-                            if (isPro) {
-                                userContext.resetToFree && userContext.resetToFree();
-                                alert('Reset to Free User');
-                            }
-                        }}
-                    >
-                        <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>
-                            DEV: {isPro ? 'Tap to Reset Pro' : 'Free User Mode'}
+                    <View style={{ marginTop: 20 }}>
+                        <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
+                            🧪 TEST & DEMO KULLANICI MODU
                         </Text>
-                    </TouchableOpacity>
+                        <SettingItem
+                            icon={Sparkles}
+                            title="Sarah Connor (Pro Test Profili)"
+                            onPress={async () => {
+                                await loginWithDummyUser('PRO');
+                                if (reloadAllHabitData) await reloadAllHabitData();
+                                Alert.alert('✅ Pro Test Profili', 'Sarah Connor (Pro) profiline geçildi. 6 alışkanlık ve 42 günlük streak yüklendi.');
+                            }}
+                        />
+                        <SettingItem
+                            icon={RefreshCw}
+                            title="Alex Rivera (Free Test Profili - 3 Limit)"
+                            onPress={async () => {
+                                await loginWithDummyUser('FREE');
+                                if (reloadAllHabitData) await reloadAllHabitData();
+                                Alert.alert('✅ Free Test Profili', 'Alex Rivera (Free) profiline geçildi. 3 alışkanlık yüklendi (4. alışkanlık Paywall açar).');
+                            }}
+                        />
+                        <SettingItem
+                            icon={User}
+                            title="Temiz Kullanıcı (0 Alışkanlık)"
+                            onPress={async () => {
+                                await loginWithDummyUser('CLEAN');
+                                if (reloadAllHabitData) await reloadAllHabitData();
+                                Alert.alert('✅ Temiz Profil', 'Yeni temiz kullanıcı profili yüklendi.');
+                            }}
+                        />
+                        <SettingItem
+                            icon={Crown}
+                            title={isPro ? 'Pro Statüsünü Sıfırla (Free Yap)' : 'Pro Statüsüne Yükselt'}
+                            onPress={async () => {
+                                if (isPro) {
+                                    await resetToFree();
+                                    Alert.alert('Statü Güncellendi', 'Free kullanıcı moduna geçildi.');
+                                } else {
+                                    await userContext.upgradeToPro(null);
+                                    Alert.alert('Statü Güncellendi', 'Pro kullanıcı moduna geçildi.');
+                                }
+                            }}
+                        />
+                    </View>
                 )}
             </ScrollView>
 
@@ -315,7 +368,7 @@ const SettingsScreen = ({ navigation }) => {
                     <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
                         <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('selectLanguage')}</Text>
                         {languages.map(lang => (
-                            <TouchableOpacity
+                            <TouchableOpacity activeOpacity={0.7}
                                 key={lang.code}
                                 style={[styles.langItem, { borderBottomColor: theme.colors.border }]}
                                 onPress={() => { setLanguage(lang.code); setLanguageModalVisible(false); }}
@@ -324,7 +377,7 @@ const SettingsScreen = ({ navigation }) => {
                                 {language === lang.code && <Ionicons name="checkmark" size={20} color={theme.colors.primary} />}
                             </TouchableOpacity>
                         ))}
-                        <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.colors.surface }]} onPress={() => setLanguageModalVisible(false)}>
+                        <TouchableOpacity activeOpacity={0.7} style={[styles.closeButton, { backgroundColor: theme.colors.surface }]} onPress={() => setLanguageModalVisible(false)}>
                             <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
                         </TouchableOpacity>
                     </View>
@@ -337,13 +390,13 @@ const SettingsScreen = ({ navigation }) => {
                     <View style={[styles.editModalContent, { backgroundColor: theme.colors.card }]}>
                         <View style={styles.modalHeader}>
                             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('editProfile')}</Text>
-                            <TouchableOpacity onPress={() => setEditProfileModalVisible(false)}>
+                            <TouchableOpacity activeOpacity={0.7} onPress={() => setEditProfileModalVisible(false)}>
                                 <Ionicons name="close" size={24} color={theme.colors.text} />
                             </TouchableOpacity>
                         </View>
 
                         <View style={styles.avatarEditSection}>
-                            <TouchableOpacity onPress={() => setAvatarOptionsVisible(true)}>
+                            <TouchableOpacity activeOpacity={0.7} onPress={() => setAvatarOptionsVisible(true)}>
                                 {editedAvatar ? (
                                     <Image source={{ uri: editedAvatar }} style={styles.avatarEdit} />
                                 ) : (
@@ -384,13 +437,13 @@ const SettingsScreen = ({ navigation }) => {
                         </View>
 
                         <View style={styles.modalButtons}>
-                            <TouchableOpacity
+                            <TouchableOpacity activeOpacity={0.7}
                                 style={[styles.modalButton, styles.cancelButton, { backgroundColor: theme.colors.surface }]}
                                 onPress={() => setEditProfileModalVisible(false)}
                             >
                                 <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
+                            <TouchableOpacity activeOpacity={0.7}
                                 style={[styles.modalButton, styles.saveButton, { backgroundColor: theme.colors.primary }]}
                                 onPress={handleSaveProfile}
                             >
@@ -407,7 +460,7 @@ const SettingsScreen = ({ navigation }) => {
                     <View style={[styles.editProfileContent, { backgroundColor: theme.colors.card }]}>
                         <View style={styles.modalHeader}>
                             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('setPasswordTitle') || 'Şifre Belirle / Değiştir'}</Text>
-                            <TouchableOpacity onPress={() => setPasswordModalVisible(false)}>
+                            <TouchableOpacity activeOpacity={0.7} onPress={() => setPasswordModalVisible(false)}>
                                 <X size={24} color={theme.colors.text} />
                             </TouchableOpacity>
                         </View>
@@ -443,13 +496,13 @@ const SettingsScreen = ({ navigation }) => {
                         </View>
 
                         <View style={styles.modalButtons}>
-                            <TouchableOpacity
+                            <TouchableOpacity activeOpacity={0.7}
                                 style={[styles.modalButton, styles.cancelButton, { backgroundColor: theme.colors.surface }]}
                                 onPress={() => setPasswordModalVisible(false)}
                             >
                                 <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
+                            <TouchableOpacity activeOpacity={0.7}
                                 style={[styles.modalButton, styles.saveButton, { backgroundColor: theme.colors.primary }]}
                                 onPress={handleSetPassword}
                                 disabled={passwordLoading}
@@ -470,21 +523,21 @@ const SettingsScreen = ({ navigation }) => {
                 <View style={styles.modalOverlay}>
                     <View style={[styles.avatarOptionsContent, { backgroundColor: theme.colors.card }]}>
                         <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('selectAvatar')}</Text>
-                        <TouchableOpacity style={[styles.avatarOption, { borderBottomColor: theme.colors.border }]} onPress={takePhoto}>
+                        <TouchableOpacity activeOpacity={0.7} style={[styles.avatarOption, { borderBottomColor: theme.colors.border }]} onPress={takePhoto}>
                             <Camera size={24} color={theme.colors.text} />
                             <Text style={[styles.avatarOptionText, { color: theme.colors.text }]}>{t('takePhoto')}</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.avatarOption, { borderBottomColor: theme.colors.border }]} onPress={chooseFromGallery}>
+                        <TouchableOpacity activeOpacity={0.7} style={[styles.avatarOption, { borderBottomColor: theme.colors.border }]} onPress={chooseFromGallery}>
                             <ImageIcon size={24} color={theme.colors.text} />
                             <Text style={[styles.avatarOptionText, { color: theme.colors.text }]}>{t('chooseFromGallery')}</Text>
                         </TouchableOpacity>
                         {editedAvatar && (
-                            <TouchableOpacity style={[styles.avatarOption, { borderBottomColor: theme.colors.border }]} onPress={removeAvatar}>
+                            <TouchableOpacity activeOpacity={0.7} style={[styles.avatarOption, { borderBottomColor: theme.colors.border }]} onPress={removeAvatar}>
                                 <X size={24} color={theme.colors.error || '#FF0000'} />
                                 <Text style={[styles.avatarOptionText, { color: theme.colors.error || '#FF0000' }]}>{t('remove')}</Text>
                             </TouchableOpacity>
                         )}
-                        <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.colors.surface, marginTop: 16 }]} onPress={() => setAvatarOptionsVisible(false)}>
+                        <TouchableOpacity activeOpacity={0.7} style={[styles.closeButton, { backgroundColor: theme.colors.surface, marginTop: 16 }]} onPress={() => setAvatarOptionsVisible(false)}>
                             <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
                         </TouchableOpacity>
                     </View>
@@ -503,7 +556,9 @@ const SettingsScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, paddingTop: 60, paddingHorizontal: 20 },
-    headerTitle: { fontSize: 32, fontWeight: 'bold', marginBottom: 24 },
+    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+    backButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+    headerTitle: { fontSize: 24, fontWeight: 'bold' },
     userPanel: { borderRadius: 24, marginBottom: 24, overflow: 'hidden', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
     userPanelContent: { padding: 20 },
     avatarSection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },

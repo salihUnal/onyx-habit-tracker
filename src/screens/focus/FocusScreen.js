@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Keyboard } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Keyboard, Platform, KeyboardAvoidingView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -8,6 +9,7 @@ import { Play, Pause, RotateCcw, MoreHorizontal } from 'lucide-react-native';
 
 const FocusScreen = ({ navigation }) => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { isPro } = useUser();
   const { t } = useLanguage();
   const { focusState, startFocus, pauseFocus, stopFocus, getFocusTimeLeft } = useHabits();
@@ -107,7 +109,11 @@ const FocusScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
+    >
+      <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 16) }]}>
       <View style={styles.content}>
         <Text style={[styles.title, { color: theme.colors.text }]}>{t('focusMode')}</Text>
 
@@ -119,7 +125,7 @@ const FocusScreen = ({ navigation }) => {
 
         <View style={styles.durationContainer}>
           {durations.map((duration) => (
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               key={duration}
               style={[
                 styles.durationButton,
@@ -138,7 +144,7 @@ const FocusScreen = ({ navigation }) => {
             </TouchableOpacity>
           ))}
 
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             style={[
               styles.durationButton,
               showCustomInput && { backgroundColor: theme.colors.primary },
@@ -163,7 +169,7 @@ const FocusScreen = ({ navigation }) => {
               onSubmitEditing={handleCustomDurationSubmit}
               autoFocus
             />
-            <TouchableOpacity
+            <TouchableOpacity activeOpacity={0.7}
               style={[styles.customButton, { backgroundColor: theme.colors.primary }]}
               onPress={handleCustomDurationSubmit}
             >
@@ -173,7 +179,7 @@ const FocusScreen = ({ navigation }) => {
         )}
 
         <View style={styles.controls}>
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={toggleTimer}
             style={[styles.controlButton, { backgroundColor: theme.colors.primary }]}
           >
@@ -184,7 +190,7 @@ const FocusScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
+          <TouchableOpacity activeOpacity={0.7}
             onPress={resetTimer}
             style={[styles.resetButton, { backgroundColor: theme.colors.surface }]}
           >
@@ -194,7 +200,7 @@ const FocusScreen = ({ navigation }) => {
       </View>
 
       {!isPro && (
-        <TouchableOpacity
+        <TouchableOpacity activeOpacity={0.7}
           style={[styles.bannerAd, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}
           onPress={() => navigation.navigate('Paywall')}
         >
@@ -211,6 +217,7 @@ const FocusScreen = ({ navigation }) => {
         </TouchableOpacity>
       )}
     </View>
+    </KeyboardAvoidingView>
   );
 };
 
