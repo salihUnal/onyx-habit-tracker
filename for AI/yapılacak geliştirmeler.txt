@@ -1,20 +1,62 @@
-Projenizi Play Store'da başarılı bir şekilde yayınlamak ve sürdürülebilir bir pasif gelir elde etmek için şu anki altyapı "demo" seviyesinde. Gerçek gelir için sistemin yerel cihazdan buluta ve gerçek ödeme sistemlerine taşınması gerekiyor.
+ONYX HABIT TRACKER - GOOGLE PLAY STORE CANLIYA ÇIKIŞ VE GELİR YOL HARİTASI
+(Güncelleme Tarihi: 2026-09-20 - Senior Developer Teknik Denetim Raporu)
 
-İncelediğim kadarıyla yapılması gereken kritik eklemeler ve düzeltmeler şunlardır:
+====================================================================
+🔴 SEVİYE 1: KESİN MAĞAZA REDDİ (BLOCKER) SEBEPLERİ - KODDA HEMEN DÜZELTİLECEKLER
+====================================================================
 
-1. Gelir Modeli ve Ödeme Sistemleri (Kritik)
-Gerçek Uygulama İçi Satın Alma (IAP): Şu anki 
-upgradeToPro
- fonksiyonu sadece yerel bir değişkeni değiştiriyor. Play Store'da bu geçersizdir. RevenueCat entegrasyonu yapmalısınız. Bu, hem ödemeleri doğrular hem de kullanıcının cihaz değiştirdiğinde "Satın Alımı Geri Yükle" (Restore Purchase) yapabilmesini sağlar.
-Gerçek Reklamlar (AdMob): Şu an reklam izleme butonları sadece bir başarı mesajı gösteriyor. react-native-google-mobile-ads kütüphanesini kurarak gerçek ödüllü reklamlar (Rewarded Ads) ve geçiş reklamları (Interstitials) eklemelisiniz.
-Fiyatlandırma Stratejisi: Ömür boyu 29.99$ iddialı bir rakam. Bunun yanına "Aylık" ve "Yıllık" abonelik seçenekleri eklemek, dönüşüm oranlarını (conversion rate) artıracaktır.
-2. Veri Güvenliği ve Senkronizasyon (Cloud Sync)
-Veri Kaybını Önleme: Şu an veriler sadece AsyncStorage'da (telefonun belleğinde) tutuluyor. Kullanıcı uygulamayı silerse tüm geçmişi gider. Bu durum ücretli bir uygulama için kabul edilemez.
-Firebase Entegrasyonu: Kullanıcıların Google ile giriş yapıp verilerini buluta yedekleyebileceği bir yapı kurmalısınız. Bu sayede "Pasif Gelir" hedefiniz için sadık bir kullanıcı kitlesi oluşturursunuz.
-3. Play Store Yasal Gereksinimleri
-Hesap Silme (Account Deletion): Google ve Apple, giriş özelliği olan uygulamalarda "Hesabımı Sil" butonu olmasını zorunlu tutuyor. Ayarlar kısmına bu özelliği eklemelisiniz.
-Gizlilik Politikası ve Kullanım Şartları: Uygulama içinde ve mağaza girişinde bu linklerin olması şart. Ayarlar -> Hakkında kısmına bu linkleri eklemeliyiz.
-4. Kullanıcı Deneyimi (UX) ve Tutundurma
-Onboarding (Tanıtım): Uygulama ilk açıldığında "Zincir Kırma" ve "Odaklanma" özelliklerini anlatan 3-4 sayfalık şık bir karşılama ekranı eklenmeli.
-Widgetlar: Kodda "Widget Store" gördüm ancak Expo'da yerel widget desteği sınırlıdır. Gerçek ana ekran widgetları için özel Expo Config Plugin'leri yazılması veya kullanıcıya bu özelliğin "Yolda" olduğu belirtilmeli.
-Analiz (Analytics): Kullanıcılar nerede takılıyor, hangi alışkanlıkları daha çok ekliyor? Bunu görmek için Firebase Analytics veya Mixpanel eklemelisiniz.
+1. [KOD DÜZELTİLDİ / DÜZELTİLECEK] Android İzinlerinin Temizlenmesi (AndroidManifest.xml):
+   - 'RECORD_AUDIO' (Mikrofon) ve 'SYSTEM_ALERT_WINDOW' (Ekran üzerine çizim) izinleri kodda KULLANILMIYOR.
+   - Google Play Hassas İzin Politikası gereğince, uygulamanın ana işleviyle doğrudan ilişkisi kanıtlanamayan bu izinler %100 doğrudan mağaza reddi (Rejection) doğurur.
+   - Aksiyon: Bu gereksiz izinler AndroidManifest.xml içerisinden tamamen kaldırılmalıdır.
+
+2. [KOD DÜZELTİLDİ / DÜZELTİLECEK] Release Keystore İmzalaması (android/app/build.gradle):
+   - Şu anda release buildType, 'signingConfig signingConfigs.debug' olarak ayarlı.
+   - Google Play Console, debug.keystore ile imzalanmış hiçbir AAB veya APK'yı KABUL ETMEZ ("signed in debug mode" hatası).
+   - Aksiyon: Gerçek bir release.keystore oluşturulmalı veya CI/EAS Build ortamı için güvenli prodüksiyon imzalama bloğu kurulmalıdır.
+
+3. [KOD DÜZELTİLDİ / DÜZELTİLECEK] AuthScreen Test / Demo Girişi Butonu Koruması:
+   - 'AuthScreen.js' içindeki '🧪 Test / Demo Girişi' butonu '__DEV__' korumasına sahip değil.
+   - Canlıya bu şekilde çıkarsa hem mağaza inceleme ekibi "tamamlanmamış demo uygulama" diyerek reddeder, hem de gerçek kullanıcılar test profillerine serbestçe girebilir.
+   - Aksiyon: Buton '__DEV__ && ( ... )' içine alınarak canlı pakette gizlenmelidir.
+
+4. [KOD DÜZELTİLDİ / DÜZELTİLECEK] "Widget Store" Yanıltıcı İçerik İhlali (WidgetStoreScreen.js):
+   - Ekranda kullanıcıya "Ana ekranınıza basılı tutun, Onyx widget'ını seçin" deniyor ancak yerel bir OS Widget'ı (AppWidgetProvider) mevcut değil. Sadece uygulama içi kart tasarımı değişiyor.
+   - Google Play denetçileri veya kullanıcılar "özellik çalışmıyor" diyerek ret/kötü puan verir.
+   - Aksiyon: Başlık ve yönergeler "Uygulama İçi Kart Temaları" olarak netleştirilmelidir.
+
+5. [DAĞITIM KURALI] APK Değil, AAB (Android App Bundle) Formatı:
+   - Google Play Store, Ağustos 2021'den bu yana yeni uygulamalar için APK kabul etmemektedir.
+   - Mağazaya yüklenecek derleme mutlaka '.aab' uzantılı olmalıdır.
+
+====================================================================
+🟡 SEVİYE 2: DIŞ SERVİS VE KONSOL AYARLARI (GELİR & MAĞAZA GÜVENLİĞİ)
+====================================================================
+
+6. RevenueCat & Google Play Billing Entegrasyonu:
+   - Google Play Console üzerinde In-App Products / Subscriptions oluşturulmalı:
+     * onyx_monthly (Aylık Abonelik)
+     * onyx_annual (Yıllık Abonelik - 3 Gün Ücretsiz Deneme)
+     * onyx_lifetime (Ömür Boyu Tek Seferlik)
+   - RevenueCat paneline Google Play Service Account (.json anahtarı) bağlanmalıdır. (Bağlanmazsa fiyatlar ve satın alma canlıda çalışmaz).
+   - Entitlement ID: 'appd32a585f83' (veya belirlediğiniz ad) RevenueCat ile birebir eşleştirilmelidir.
+
+7. AdMob Hassas Kategoriler ve Canlı Reklam Güvenliği:
+   - Kod seviyesinde COPPA (çocuk koruma) ve GDPR (Avrupa rıza formu) başarıyla çözüldü.
+   - AdMob Web Paneli -> Blocking Controls -> Sensitive Categories altından:
+     * Kumar & Bahis (Türkiye 7258 sayılı kanun gereği adli sorumluluk doğmaması için ŞART)
+     * Sosyal Kumarhane Oyunları
+     * Alkol ve Tütün
+     kategorileri kapatılmalıdır.
+
+8. Gizlilik Politikası (Privacy Policy) Web Sayfası:
+   - Google Play Console mağaza girişinde girilen link doğrudan herkese açık bir web sayfası olmalıdır.
+   - Firebase Hosting (onyx-habit-tracker.web.app/privacy.html) veya GitHub Pages üzerinden yayına alınmalıdır.
+
+====================================================================
+🟢 SEVİYE 3: GOOGLE PLAY YAYIN PROSEDÜRÜ
+====================================================================
+
+9. 20 Test Kullanıcısı (Kapalı Test / Closed Testing - 14 Gün Kuralı):
+   - 13 Kasım 2023 sonrası açılan bireysel Google Play Developer hesaplarında doğrudan Canlı (Production) yayına çıkılamaz.
+   - Önce en az 20 test kullanıcısının 14 gün kesintisiz kayıtlı kalacağı Kapalı Test kanalı açılmalı, süre bitiminde Google'a canlıya çıkış başvurusu yapılmalıdır.

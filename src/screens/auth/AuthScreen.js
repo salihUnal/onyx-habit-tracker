@@ -338,15 +338,17 @@ const AuthScreen = () => {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity activeOpacity={0.7}
-                style={[styles.button, { backgroundColor: 'rgba(99, 102, 241, 0.15)', borderWidth: 1, borderColor: '#6366F1' }]}
-                onPress={() => setDemoModalVisible(true)}
-              >
-                <Ionicons name="flask-outline" size={20} color="#A5B4FC" style={styles.icon} />
-                <Text style={[styles.buttonText, { color: '#E0E7FF' }]}>
-                  🧪 Test / Demo Girişi
-                </Text>
-              </TouchableOpacity>
+              {__DEV__ && (
+                <TouchableOpacity activeOpacity={0.7}
+                  style={[styles.button, { backgroundColor: 'rgba(99, 102, 241, 0.15)', borderWidth: 1, borderColor: '#6366F1' }]}
+                  onPress={() => setDemoModalVisible(true)}
+                >
+                  <Ionicons name="flask-outline" size={20} color="#A5B4FC" style={styles.icon} />
+                  <Text style={[styles.buttonText, { color: '#E0E7FF' }]}>
+                    🧪 Test / Demo Girişi
+                  </Text>
+                </TouchableOpacity>
+              )}
 
 
             </View>
