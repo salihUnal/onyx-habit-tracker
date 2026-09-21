@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -9,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const WidgetStoreScreen = ({ navigation }) => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { isPro } = useUser();
   const { t } = useLanguage();
   const [selectedWidget, setSelectedWidget] = useState('basic');
@@ -36,9 +38,15 @@ const WidgetStoreScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top + 10, 48), paddingBottom: Math.max(insets.bottom + 10, 16) }]}>
       <View style={styles.header}>
-        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('back') || 'Geri'}
+        >
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: theme.colors.text }]}>{t('widgetStore')}</Text>
@@ -50,7 +58,11 @@ const WidgetStoreScreen = ({ navigation }) => {
         </Text>
 
         {/* Basic Widget */}
-        <TouchableOpacity activeOpacity={0.7}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('minimalList')}, ${t('free')}`}
+          accessibilityState={{ selected: selectedWidget === 'basic' }}
           style={[
             styles.card,
             {
@@ -77,7 +89,11 @@ const WidgetStoreScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         {/* Premium Widget */}
-        <TouchableOpacity activeOpacity={0.7}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('neonCyberpunk')}, Pro`}
+          accessibilityState={{ selected: selectedWidget === 'neon' }}
           style={[
             styles.card,
             {
@@ -143,7 +159,6 @@ const Step = ({ number, text, theme }) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
   },
   header: {
     flexDirection: 'row',

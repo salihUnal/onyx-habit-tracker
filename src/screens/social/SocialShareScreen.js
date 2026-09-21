@@ -8,8 +8,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Zap, Heart, Briefcase, BookOpen, Brain, Dumbbell, Tag } from 'lucide-react-native';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SocialShareScreen = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const { habit, color, categoryIcon } = route.params;
   const theme = useTheme();
   const { isPro } = useUser();
@@ -63,7 +65,16 @@ const SocialShareScreen = ({ route, navigation }) => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.colors.background,
+          paddingTop: Math.max(insets.top + 10, 48),
+          paddingBottom: Math.max(insets.bottom, 20),
+        }
+      ]}
+    >
       <View style={styles.header}>
         <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={theme.colors.text} />
@@ -125,7 +136,6 @@ const adjustColor = (color, amount) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
   },
   header: {
     flexDirection: 'row',

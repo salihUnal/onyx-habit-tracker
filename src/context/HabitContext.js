@@ -3,6 +3,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from './UserContext';
 import { db, auth } from '../config/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import NotificationService from '../services/NotificationService';
+
+const withTimeout = (promise, ms = 5000) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore timeout')), ms))
+  ]);
+};
 
 const defaultHabitContext = {
   habits: [],
@@ -90,8 +98,8 @@ export const HabitProvider = ({ children }) => {
     if (!auth.currentUser) return;
     try {
       const docRef = doc(db, 'habits', auth.currentUser.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
+      const docSnap = await withTimeout(getDoc(docRef), 5000);
+      if (docSnap && docSnap.exists()) {
         const data = docSnap.data();
         
         const localHabitsRaw = await AsyncStorage.getItem('habits');
@@ -108,6 +116,7 @@ export const HabitProvider = ({ children }) => {
         
         await saveHabits(mergedHabits, true);
         await saveBreakHabits(mergedBreakHabits, true);
+        NotificationService.syncAllHabitReminders(mergedHabits);
       } else {
         await syncWithCloud(habits, breakHabits);
       }
@@ -115,7 +124,7 @@ export const HabitProvider = ({ children }) => {
       if (e?.code === 'permission-denied' || e?.message?.includes('insufficient permissions') || e?.message?.includes('Missing or insufficient permissions')) {
         console.warn('⚠️ Cloud sync: Firestore security rules need updating in Firebase Console. Using local habits.');
       } else {
-        console.error('Failed to load from cloud', e);
+        console.warn('⚠️ Cloud load skipped (offline or timeout). Preserving local storage:', e?.message || e);
       }
     }
   };
@@ -123,16 +132,19 @@ export const HabitProvider = ({ children }) => {
   const syncWithCloud = async (habitsToSync, breakHabitsToSync) => {
     if (!auth.currentUser) return;
     try {
-      await setDoc(doc(db, 'habits', auth.currentUser.uid), {
-        habits: habitsToSync || habits,
-        breakHabits: breakHabitsToSync || breakHabits,
-        lastUpdated: new Date().toISOString()
-      }, { merge: true });
+      await withTimeout(
+        setDoc(doc(db, 'habits', auth.currentUser.uid), {
+          habits: habitsToSync || habits,
+          breakHabits: breakHabitsToSync || breakHabits,
+          lastUpdated: new Date().toISOString()
+        }, { merge: true }),
+        5000
+      );
     } catch (e) {
       if (e?.code === 'permission-denied' || e?.message?.includes('insufficient permissions') || e?.message?.includes('Missing or insufficient permissions')) {
         console.warn('⚠️ Cloud sync: Firestore security rules need updating. Habits saved locally.');
       } else {
-        console.error('Failed to sync with cloud', e);
+        console.warn('⚠️ Cloud sync pending (offline or timeout). Local data safely saved.');
       }
     }
   };
@@ -328,7 +340,10 @@ export const HabitProvider = ({ children }) => {
 
     const newHabits = [...habits, newHabit];
     saveHabits(newHabits);
-    return { success: true };
+    if (reminderTime) {
+      NotificationService.scheduleHabitReminder(newHabit);
+    }
+    return { success: true, habit: newHabit };
   };
 
   const startFocus = (durationMinutes) => {
@@ -426,11 +441,21 @@ export const HabitProvider = ({ children }) => {
   };
 
   const updateHabit = (id, updates) => {
-    const newHabits = habits.map(habit =>
-      habit.id === id ? { ...habit, ...updates } : habit
-    );
+    let updatedHabit = null;
+    const newHabits = habits.map(habit => {
+      if (habit.id === id) {
+        updatedHabit = { ...habit, ...updates };
+        if (updatedHabit.reminderTime) {
+          NotificationService.scheduleHabitReminder(updatedHabit);
+        } else {
+          NotificationService.cancelHabitReminder(id);
+        }
+        return updatedHabit;
+      }
+      return habit;
+    });
     saveHabits(newHabits);
-    return { success: true };
+    return { success: true, habit: updatedHabit };
   };
 
   const calculateStreak = (completedDates) => {
@@ -501,6 +526,7 @@ export const HabitProvider = ({ children }) => {
   const deleteHabit = (id) => {
     const newHabits = habits.filter(habit => habit.id !== id);
     saveHabits(newHabits);
+    NotificationService.cancelHabitReminder(id);
   };
 
   // Break Habits (Bad Habits) Functions

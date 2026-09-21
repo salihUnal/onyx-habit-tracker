@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Linking, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Linking, Platform, ActivityIndicator, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Config from '../../config/Config';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
@@ -25,6 +26,7 @@ try {
 }
 
 const PaywallScreen = ({ navigation, route }) => {
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { upgradeToPro, restorePurchases } = useUser();
   const { rewardExtraHabit, repairStreak } = useHabits();
@@ -36,6 +38,7 @@ const PaywallScreen = ({ navigation, route }) => {
   const [offerings, setOfferings] = React.useState(null);
   const [legalModalVisible, setLegalModalVisible] = React.useState(false);
   const [legalTab, setLegalTab] = React.useState('privacy');
+  const [restoring, setRestoring] = React.useState(false);
 
   React.useEffect(() => {
     if (Purchases) fetchOfferings();
@@ -106,10 +109,26 @@ const PaywallScreen = ({ navigation, route }) => {
   };
 
   const handleRestore = async () => {
-    const success = await restorePurchases();
-    if (success) {
-      setSuccessMessage(t('restoreSuccess') || 'Satın alımlar başarıyla geri yüklendi!');
-      setSuccessModalVisible(true);
+    if (restoring) return;
+    setRestoring(true);
+    try {
+      const success = await restorePurchases();
+      if (success) {
+        setSuccessMessage(t('restoreSuccess') || 'Satın alımlar başarıyla geri yüklendi!');
+        setSuccessModalVisible(true);
+      } else {
+        Alert.alert(
+          t('restorePurchase') || 'Satın Alımı Geri Yükle',
+          t('restoreFailed') || 'Geri yüklenecek aktif bir satın alım bulunamadı.'
+        );
+      }
+    } catch (e) {
+      Alert.alert(
+        t('restorePurchase') || 'Satın Alımı Geri Yükle',
+        t('restoreFailed') || 'Geri yüklenecek aktif bir satın alım bulunamadı.'
+      );
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -130,9 +149,23 @@ const PaywallScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top + 10, 48),
+            paddingBottom: Math.max(insets.bottom + 20, 40),
+          }
+        ]}
+      >
         <View style={styles.header}>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.closeButton}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.goBack()}
+            style={styles.closeButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('cancel') || 'Kapat'}
+          >
             <Ionicons name="close" size={28} color={theme.colors.text} />
           </TouchableOpacity>
         </View>
@@ -190,10 +223,10 @@ const PaywallScreen = ({ navigation, route }) => {
 
         <View style={styles.pricingContainer}>
           {offerings && offerings.availablePackages.map((pkg) => (
-            <TouchableOpacity activeOpacity={0.7}
+            <TouchableOpacity
               key={pkg.identifier}
               onPress={() => handlePurchase(pkg)}
-              activeOpacity={0.9}
+              activeOpacity={0.85}
               style={{ position: 'relative' }}
             >
               {pkg.packageType === 'ANNUAL' && (
@@ -229,7 +262,7 @@ const PaywallScreen = ({ navigation, route }) => {
           {!offerings && (
             <View style={{ gap: 14 }}>
               {/* Annual - Highlighted */}
-              <TouchableOpacity activeOpacity={0.7} onPress={() => handlePurchase(null)} activeOpacity={0.9} style={{ position: 'relative' }}>
+              <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.85} style={{ position: 'relative' }}>
                 <View style={styles.popularBadge}>
                   <Text style={styles.popularBadgeText}>🔥 EN POPÜLER - %50 TASARRUF</Text>
                 </View>
@@ -243,7 +276,7 @@ const PaywallScreen = ({ navigation, route }) => {
               </TouchableOpacity>
 
               {/* Monthly */}
-              <TouchableOpacity activeOpacity={0.7} onPress={() => handlePurchase(null)} activeOpacity={0.9}>
+              <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.85}>
                 <View style={[styles.purchaseButton, { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, shadowOpacity: 0.1, elevation: 2 }]}>
                   <Text style={[styles.purchaseButtonText, { color: theme.colors.text }]}>{t('monthlyPro') || 'Aylık Pro'}</Text>
                   <Text style={[styles.priceText, { color: theme.colors.textSecondary }]}>$2.99 / {t('monthly') || 'Aylık'}</Text>
@@ -251,7 +284,7 @@ const PaywallScreen = ({ navigation, route }) => {
               </TouchableOpacity>
 
               {/* Lifetime */}
-              <TouchableOpacity activeOpacity={0.7} onPress={() => handlePurchase(null)} activeOpacity={0.9}>
+              <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.85}>
                 <LinearGradient
                   colors={[theme.colors.primary, theme.colors.secondary]}
                   start={{ x: 0, y: 0 }}
@@ -265,10 +298,19 @@ const PaywallScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          <TouchableOpacity activeOpacity={0.7} onPress={handleRestore}>
-            <Text style={[styles.restoreText, { color: theme.colors.textSecondary }]}>
-              {t('restorePurchase') || 'Satın Alımı Geri Yükle'}
-            </Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleRestore}
+            disabled={restoring}
+            style={{ paddingVertical: 12, alignItems: 'center' }}
+          >
+            {restoring ? (
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+            ) : (
+              <Text style={[styles.restoreText, { color: theme.colors.textSecondary }]}>
+                {t('restorePurchase') || 'Satın Alımı Geri Yükle'}
+              </Text>
+            )}
           </TouchableOpacity>
 
           {(trigger === 'habit_limit' || trigger === 'break_habit_limit' || trigger === 'streak_repair' || trigger === 'focus_limit') && (
@@ -300,7 +342,13 @@ const PaywallScreen = ({ navigation, route }) => {
               <Text style={[styles.legalDivider, { color: theme.colors.textSecondary }]}>•</Text>
               <TouchableOpacity activeOpacity={0.7} onPress={() => { setLegalTab('terms'); setLegalModalVisible(true); }}>
                 <Text style={[styles.legalLinkText, { color: theme.colors.primary }]}>
-                  {Platform.OS === 'ios' ? `${t('termsOfService')} (${t('eula')})` : t('termsOfService')}
+                  {t('termsOfService')}
+                </Text>
+              </TouchableOpacity>
+              <Text style={[styles.legalDivider, { color: theme.colors.textSecondary }]}>•</Text>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => { setLegalTab('eula'); setLegalModalVisible(true); }}>
+                <Text style={[styles.legalLinkText, { color: theme.colors.primary }]}>
+                  {t('eula') || 'EULA'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -349,7 +397,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: 60,
   },
   header: {
     alignItems: 'flex-end',

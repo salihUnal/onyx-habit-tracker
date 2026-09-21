@@ -42,6 +42,13 @@
       "expo-asset",
       "expo-font",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/onyx-app-icon-512x512.png",
+          "color": "#6366F1"
+        }
+      ],
+      [
         "react-native-google-mobile-ads",
         {
           "androidAppId": "ca-app-pub-9005956424727190~4380402516",

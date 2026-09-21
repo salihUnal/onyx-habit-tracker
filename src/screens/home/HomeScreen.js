@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useHabits } from '../../context/HabitContext';
@@ -20,6 +21,7 @@ try {
 }
 
 const HomeScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
   const colors = theme?.colors || {};
   const { user, isPro } = useUser();
@@ -324,7 +326,16 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top + 10, 48),
+            paddingBottom: Math.max(insets.bottom + 80, 100),
+          }
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         {renderHeader()}
         {renderStreakDangerAlert()}
         {renderActiveFocus()}
@@ -359,7 +370,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingTop: 60,
   },
   header: {
     flexDirection: 'row',

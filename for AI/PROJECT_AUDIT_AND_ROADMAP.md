@@ -63,6 +63,28 @@ Aşağıdaki temel yasal, güvenlik ve mağaza politikası maddeleri başarıyla
 12. **Firestore Güvenlik Kuralları (2026-09-12):**
     - Proje kökünde `firestore.rules` dosyası oluşturuldu. 30 günlük test modunun dolmasıyla oluşabilecek kilitlenme engellendi.
 
+13. **WidgetStoreScreen Mağaza Politikası & Yanıltıcı İçerik Temizliği (2026-09-21):**
+    - Ekran "Uygulama İçi Kart ve Bileşen Temaları" olarak netleştirildi.
+    - Yanıltıcı launcher widget yükleme vaadi temizlendi; `useSafeAreaInsets` ile çentik/Dynamic Island uyumu sağlandı.
+
+14. **Apple Guideline 3.1.2: Paywall & Ayarlar "Restore Purchases" Standartları (2026-09-21):**
+    - `SettingsScreen.js`: "Satın Alımları Geri Yükle" butonu Pro kullanıcılar dahil herkese görünür kılındı.
+    - Pro kullanıcılara native mağaza abonelik yönetim sayfasına (`apps.apple.com/account/subscriptions` / `play.google.com/store/account/subscriptions`) doğrudan yönlendiren "Aboneliği Yönet" seçeneği eklendi.
+    - `PaywallScreen.js`: `restoring` yüklenme göstergesi (`ActivityIndicator`) ve satın alma bulunamadığında Apple standardı `Alert.alert` uyarısı eklendi.
+    - `LegalModal.js`: 3 sekmeli yapıya (`Gizlilik`, `Şartlar`, `EULA`) geçildi; canlı GitHub ve Apple EULA web bağlantıları yerleştirildi.
+
+15. **Android 13+ POST_NOTIFICATIONS İzni ve Merkezi NotificationService (2026-09-21):**
+    - `AndroidManifest.xml` içine `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `SCHEDULE_EXACT_ALARM` eklendi.
+    - `app.json` expo-notifications eklentisi yapılandırıldı.
+    - `src/services/NotificationService.js` geliştirilerek alışkanlık saat hatırlatıcıları ve sabah 09:00 güne başlama bildirimleri otomatik zamanlandı.
+
+16. **Firebase / Firestore Çevrimdışı Dayanıklılık ve Zaman Aşımı (2026-09-21):**
+    - `HabitContext.js` içinde `loadFromCloud` ve `syncWithCloud` çağrılarına 5 saniyelik `withTimeout` koruması eklendi; internet yokken veya zayıfken uygulamanın donması engellendi.
+    - Yerel-öncelikli (`AsyncStorage`) mimari garantiye alındı.
+
+17. **7 Dilde Hukuki ve Abonelik Sözlük Desteği (2026-09-21):**
+    - `translations.js` dosyasına `manageSubscription`, `manageSubscriptionDesc`, `subscriptionTerms`, `viewOnline`, `openLinkError` anahtarları 7 dilde tanımlandı.
+
 ---
 
 ## 🔴 SEVİYE 1: KRİTİK - YASAL RİSKLER, CEZAİ SORUMLULUK VE KESİN MAĞAZA REDLERİ (BLOCKER)
@@ -108,15 +130,12 @@ Bu kategorideki maddeler çözülmeden uygulama mağazalara gönderilirse **%100
 
 ---
 
-### 1.4. Apple Kuralı 3.1.2 & Google Play: Paywall Ekranı Yasal Eksikleri
-* **Mevcut Durum (`PaywallScreen.js`):**
-  - Kullanım Koşulları (Terms of Use - EULA) linki YOK.
-  - Gizlilik Politikası (Privacy Policy) linki YOK.
-  - Abonelik yenileme, iptal koşulları ve faturalandırma şartları metni YOK.
-* **Apple Kılavuzu 3.1.2:** Abonelik / Paywall ekranında Apple Standard EULA veya özel Kullanım Şartları ile Gizlilik Sözleşmesi linkleri bulunmak zorundadır. Aksi takdirde onaylanmaz.
-* **Gereken Aksiyon:**
-  - `PaywallScreen.js` alt kısmına tıklanabilir **"Kullanım Şartları (EULA)"** ve **"Gizlilik Politikası"** linkleri eklenmelidir.
-  - Mağaza onay metni: *"Satın alma onayıyla birlikte ödeme iTunes / Google Play hesabınızdan tahsil edilir. Abonelik, dönem bitiminden en az 24 saat önce iptal edilmediği sürece otomatik yenilenir."* ibaresi eklenmelidir.
+### 1.4. [✅ ÇÖZÜLDÜ - 2026-09-21] Apple Kuralı 3.1.2 & Google Play: Paywall Ekranı Yasal Eksikleri
+* **Uygulanan Çözüm (`PaywallScreen.js` & `LegalModal.js`):**
+  - Tıklanabilir **"Gizlilik Politikası"**, **"Kullanım Şartları"** ve **"EULA"** linkleri `PaywallScreen.js` alt alanına yerleştirildi.
+  - 7 dilde otomatik yenilenen abonelik koşulları feragatnamesi eklendi (`subscriptionTermsDisclaimer`).
+  - "Satın Alımı Geri Yükle" (`restorePurchase`) butonuna yüklenme durumu (`ActivityIndicator`) ve bulunamadığında mağaza standardı `Alert.alert` uyarısı eklendi.
+  - Canlı GitHub sözleşmeleri ve Apple resmi EULA sayfasına giden dış bağlantı butonları `LegalModal.js` içine eklendi.
 
 ---
 

@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Modal, Image, TextInput, Alert, Linking, ActivityIndicator, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useHabits } from '../../context/HabitContext';
 import { Ionicons } from '@expo/vector-icons';
-import { Globe, Moon, LogOut, Layout, User, Crown, Edit2, Camera, Image as ImageIcon, X, Shield, Lock, ChevronLeft, Sparkles, RefreshCw } from 'lucide-react-native';
+import { Globe, Moon, LogOut, Layout, User, Crown, Edit2, Camera, Image as ImageIcon, X, Shield, Lock, ChevronLeft, Sparkles, RefreshCw, ExternalLink, FileText, RotateCcw } from 'lucide-react-native';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import Config from '../../config/Config';
 import LegalModal from './LegalModal';
 
 const SettingsScreen = ({ navigation }) => {
+    const insets = useSafeAreaInsets();
     const theme = useTheme();
     const userContext = useUser();
-    const { user, logout, isPro, updateUser, resetToFree, setPasswordForCurrentUser, loginWithDummyUser } = userContext;
+    const { user, logout, isPro, updateUser, resetToFree, setPasswordForCurrentUser, loginWithDummyUser, restorePurchases } = userContext;
     const { language, setLanguage, t } = useLanguage();
     const { habits, reloadAllHabitData } = useHabits();
 
@@ -39,6 +41,7 @@ const SettingsScreen = ({ navigation }) => {
     const [passwordLoading, setPasswordLoading] = useState(false);
     const [legalModalVisible, setLegalModalVisible] = useState(false);
     const [legalTab, setLegalTab] = useState('privacy');
+    const [restoring, setRestoring] = useState(false);
 
     const languages = [
         { code: 'English', label: 'English' },
@@ -52,6 +55,49 @@ const SettingsScreen = ({ navigation }) => {
 
     const handleLogout = () => {
         logout();
+    };
+
+    const handleRestore = async () => {
+        if (restoring) return;
+        setRestoring(true);
+        try {
+            const success = await restorePurchases();
+            if (success) {
+                Alert.alert(
+                    t('restorePurchase') || 'Satın Alımı Geri Yükle',
+                    t('restoreSuccess') || 'Satın alımlar başarıyla geri yüklendi!'
+                );
+            } else {
+                Alert.alert(
+                    t('restorePurchase') || 'Satın Alımı Geri Yükle',
+                    t('restoreFailed') || 'Geri yüklenecek aktif bir satın alım bulunamadı.'
+                );
+            }
+        } catch (e) {
+            Alert.alert(
+                t('restorePurchase') || 'Satın Alımı Geri Yükle',
+                t('restoreFailed') || 'Geri yüklenecek aktif bir satın alım bulunamadı.'
+            );
+        } finally {
+            setRestoring(false);
+        }
+    };
+
+    const handleManageSubscription = async () => {
+        const subUrl = Platform.OS === 'ios'
+            ? 'https://apps.apple.com/account/subscriptions'
+            : 'https://play.google.com/store/account/subscriptions';
+        try {
+            const canOpen = await Linking.canOpenURL(subUrl);
+            if (canOpen) {
+                await Linking.openURL(subUrl);
+            } else {
+                Alert.alert(t('error') || 'Hata', t('openLinkError') || 'Bağlantı açılamadı.');
+            }
+        } catch (e) {
+            console.warn('Cannot open sub url:', e);
+            Alert.alert(t('error') || 'Hata', t('openLinkError') || 'Bağlantı açılamadı.');
+        }
     };
 
     const openEditProfile = () => {
@@ -240,15 +286,6 @@ const SettingsScreen = ({ navigation }) => {
         </TouchableOpacity>
     );
 
-    const handleRestore = async () => {
-        const success = await userContext.restorePurchases();
-        if (success) {
-            Alert.alert(t('success'), t('restoreSuccess') || 'Satın alımlar başarıyla geri yüklendi!');
-        } else {
-            Alert.alert(t('error') || 'Hata', t('restoreFailed') || 'Geri yüklenecek satın alım bulunamadı.');
-        }
-    };
-
     const handleDeleteAccount = () => {
         Alert.alert(
             t('deleteAccount'),
@@ -283,9 +320,15 @@ const SettingsScreen = ({ navigation }) => {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top + 10, 48) }]}>
             <View style={styles.topBar}>
-                <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7}>
+                <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => navigation.goBack()}
+                    style={styles.backButton}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('back') || 'Geri'}
+                >
                     <ChevronLeft size={24} color={theme.colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('settings')}</Text>
@@ -301,8 +344,17 @@ const SettingsScreen = ({ navigation }) => {
                 <SettingItem icon={Layout} title={t('widgetStore')} onPress={() => navigation.navigate('WidgetStore')} />
 
                 <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary, marginTop: 24 }]}>{t('account')}</Text>
-                {!isPro && (
-                    <SettingItem icon={Crown} title={t('restorePurchase')} onPress={handleRestore} />
+                <SettingItem
+                    icon={RotateCcw}
+                    title={restoring ? `${t('restorePurchase')}...` : t('restorePurchase')}
+                    onPress={handleRestore}
+                />
+                {isPro && (
+                    <SettingItem
+                        icon={ExternalLink}
+                        title={t('manageSubscription') || 'Aboneliği Yönet'}
+                        onPress={handleManageSubscription}
+                    />
                 )}
                 <SettingItem icon={Lock} title={t('setPasswordTitle') || 'Şifre Belirle / Değiştir'} onPress={() => setPasswordModalVisible(true)} />
                 <SettingItem icon={LogOut} title={t('logOut')} onPress={handleLogout} />
@@ -311,6 +363,7 @@ const SettingsScreen = ({ navigation }) => {
                 <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary, marginTop: 24 }]}>{t('about')}</Text>
                 <SettingItem icon={Shield} title={t('privacyPolicy')} onPress={() => { setLegalTab('privacy'); setLegalModalVisible(true); }} />
                 <SettingItem icon={Edit2} title={t('termsOfService')} onPress={() => { setLegalTab('terms'); setLegalModalVisible(true); }} />
+                <SettingItem icon={FileText} title={t('eula') || 'EULA'} onPress={() => { setLegalTab('eula'); setLegalModalVisible(true); }} />
 
                 {/* Dev Tool for Testing (Only in Development) */}
                 {__DEV__ && (
@@ -555,7 +608,7 @@ const SettingsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, paddingTop: 60, paddingHorizontal: 20 },
+    container: { flex: 1, paddingHorizontal: 20 },
     topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
     backButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255, 255, 255, 0.08)' },
     headerTitle: { fontSize: 24, fontWeight: 'bold' },

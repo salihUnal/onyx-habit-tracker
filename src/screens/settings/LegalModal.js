@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, Linking, Alert, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
-import { Shield, FileText, X } from 'lucide-react-native';
+import { Shield, FileText, ExternalLink, Scroll } from 'lucide-react-native';
+import Config from '../../config/Config';
 
 const LegalModal = ({ visible, onClose, initialTab = 'privacy' }) => {
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { language, t } = useLanguage();
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -17,6 +20,21 @@ const LegalModal = ({ visible, onClose, initialTab = 'privacy' }) => {
   }, [visible, initialTab]);
 
   const isTurkish = language === 'Türkçe';
+
+  const openExternalUrl = async (url) => {
+    if (!url) return;
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert(t('error') || 'Hata', t('openLinkError') || 'Bağlantı açılamadı.');
+      }
+    } catch (e) {
+      console.warn('Cannot open url:', e);
+      Alert.alert(t('error') || 'Hata', t('openLinkError') || 'Bağlantı açılamadı.');
+    }
+  };
 
   const renderPrivacyContent = () => (
     <View style={styles.textContainer}>
@@ -32,6 +50,17 @@ const LegalModal = ({ visible, onClose, initialTab = 'privacy' }) => {
           ? 'Onyx: Habit Tracker & Focus olarak kişisel verilerinizin güvenliğine ve gizliliğinize büyük önem veriyoruz. Bu Gizlilik Politikası; KVKK (Türkiye), GDPR (Avrupa Birliği) ve Apple/Google mağaza politikaları uyarınca hangi verileri nasıl topladığımızı ve koruduğumuzu açıklar.'
           : 'At Onyx: Habit Tracker & Focus, we take the security of your personal data and your privacy seriously. This Privacy Policy explains what data we collect, how it is used, and how it is protected in compliance with GDPR, KVKK, and App Store guidelines.'}
       </Text>
+
+      <TouchableOpacity
+        style={[styles.webLinkButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+        onPress={() => openExternalUrl(Config.PRIVACY_POLICY_URL)}
+        activeOpacity={0.7}
+      >
+        <ExternalLink size={16} color={theme.colors.primary} />
+        <Text style={[styles.webLinkText, { color: theme.colors.primary }]}>
+          {t('viewOnline') || 'Web Sitesinde Aç'} ({t('privacyPolicy')})
+        </Text>
+      </TouchableOpacity>
 
       <Text style={[styles.subheading, { color: theme.colors.text }]}>
         {isTurkish ? '1. Toplanan Bilgiler' : '1. Information We Collect'}
@@ -74,7 +103,7 @@ const LegalModal = ({ visible, onClose, initialTab = 'privacy' }) => {
   const renderTermsContent = () => (
     <View style={styles.textContainer}>
       <Text style={[styles.heading, { color: theme.colors.text }]}>
-        {isTurkish ? 'Kullanım Şartları ve EULA' : 'Terms of Service & EULA'}
+        {isTurkish ? 'Kullanım Şartları (Terms of Service)' : 'Terms of Service'}
       </Text>
       <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>
         {isTurkish ? 'Son Güncelleme: 4 Eylül 2026' : 'Last Updated: September 4, 2026'}
@@ -85,6 +114,17 @@ const LegalModal = ({ visible, onClose, initialTab = 'privacy' }) => {
           ? 'Onyx uygulamasını indirerek, yükleyerek veya kullanarak bu şartları ve iOS cihazlarda Apple Standart Son Kullanıcı Lisans Sözleşmesini (EULA) kabul etmiş sayılırsınız.'
           : 'By downloading, installing, or using Onyx, you agree to be bound by these terms and the Apple Standard End User License Agreement (EULA) on iOS devices.'}
       </Text>
+
+      <TouchableOpacity
+        style={[styles.webLinkButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+        onPress={() => openExternalUrl(Config.TERMS_OF_SERVICE_URL)}
+        activeOpacity={0.7}
+      >
+        <ExternalLink size={16} color={theme.colors.primary} />
+        <Text style={[styles.webLinkText, { color: theme.colors.primary }]}>
+          {t('viewOnline') || 'Web Sitesinde Aç'} ({t('termsOfService')})
+        </Text>
+      </TouchableOpacity>
 
       <Text style={[styles.subheading, { color: theme.colors.text }]}>
         {isTurkish ? '1. Abonelikler ve Otomatik Yenileme (IAP)' : '1. Subscriptions & In-App Purchases'}
@@ -115,17 +155,77 @@ const LegalModal = ({ visible, onClose, initialTab = 'privacy' }) => {
     </View>
   );
 
+  const renderEulaContent = () => (
+    <View style={styles.textContainer}>
+      <Text style={[styles.heading, { color: theme.colors.text }]}>
+        {isTurkish ? 'Apple Standart EULA Sözleşmesi' : 'Apple Standard EULA'}
+      </Text>
+      <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>
+        {isTurkish ? 'Son Güncelleme: 4 Eylül 2026' : 'Last Updated: September 4, 2026'}
+      </Text>
+
+      <Text style={[styles.paragraph, { color: theme.colors.textSecondary }]}>
+        {isTurkish
+          ? 'Onyx uygulamasının iOS sürümü, Apple\'ın Resmi Standart Son Kullanıcı Lisans Sözleşmesi (Standard Apple Terms of Use / EULA) kapsamında sunulmaktadır.'
+          : 'The iOS version of Onyx is governed by Apple\'s Standard End User License Agreement (Standard Apple Terms of Use / EULA).'}
+      </Text>
+
+      <TouchableOpacity
+        style={[styles.webLinkButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+        onPress={() => openExternalUrl(Config.APPLE_EULA_URL)}
+        activeOpacity={0.7}
+      >
+        <ExternalLink size={16} color={theme.colors.primary} />
+        <Text style={[styles.webLinkText, { color: theme.colors.primary }]}>
+          {isTurkish ? 'Resmi Apple EULA Sözleşmesini Aç' : 'View Official Apple EULA'}
+        </Text>
+      </TouchableOpacity>
+
+      <Text style={[styles.subheading, { color: theme.colors.text }]}>
+        {isTurkish ? '1. Lisansın Kapsamı' : '1. Scope of License'}
+      </Text>
+      <Text style={[styles.paragraph, { color: theme.colors.textSecondary }]}>
+        {isTurkish
+          ? 'Bu lisans devredilemez ve münhasır değildir. Uygulamayı yalnızca App Store Kullanım Kuralları ile izin verilen biçimde Apple markalı ürünlerinizde kullanabilirsiniz.'
+          : 'This license is non-transferable and non-exclusive. You may use the app on any Apple-branded products that you own or control as permitted by the Usage Rules.'}
+      </Text>
+
+      <Text style={[styles.subheading, { color: theme.colors.text }]}>
+        {isTurkish ? '2. Otomatik Yenilenen Abonelik Şartları' : '2. Auto-Renewing Subscriptions'}
+      </Text>
+      <Text style={[styles.paragraph, { color: theme.colors.textSecondary }]}>
+        {isTurkish
+          ? 'Abonelik ücreti satın alma onayı anında Apple ID hesabınızdan tahsil edilir. Cari dönem bitiminden en az 24 saat önce otomatik yenileme kapatılmazsa abonelik otomatik olarak yenilenir. Kullanıcı aboneliklerini App Store Hesap Ayarları bölümünden dilediği an yönetebilir.'
+          : 'Subscription payment will be charged to your Apple ID account upon confirmation of purchase. Subscriptions automatically renew unless cancelled at least 24 hours prior to the end of the current period. You can manage or cancel your subscriptions at any time in your App Store Account Settings.'}
+      </Text>
+    </View>
+  );
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: theme.colors.background,
+            paddingTop: Math.max(insets.top, 16),
+            paddingBottom: Math.max(insets.bottom, 16),
+          }
+        ]}
+      >
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-          <View style={styles.tabButtons}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabButtonsScroll}
+          >
             <TouchableOpacity
               style={[styles.tabButton, activeTab === 'privacy' && { backgroundColor: theme.colors.primary }]}
               onPress={() => setActiveTab('privacy')}
+              activeOpacity={0.7}
             >
-              <Shield size={16} color={activeTab === 'privacy' ? 'white' : theme.colors.textSecondary} />
+              <Shield size={15} color={activeTab === 'privacy' ? 'white' : theme.colors.textSecondary} />
               <Text style={[styles.tabButtonText, { color: activeTab === 'privacy' ? 'white' : theme.colors.textSecondary }]}>
                 {t('privacyPolicy')}
               </Text>
@@ -134,24 +234,44 @@ const LegalModal = ({ visible, onClose, initialTab = 'privacy' }) => {
             <TouchableOpacity
               style={[styles.tabButton, activeTab === 'terms' && { backgroundColor: theme.colors.primary }]}
               onPress={() => setActiveTab('terms')}
+              activeOpacity={0.7}
             >
-              <FileText size={16} color={activeTab === 'terms' ? 'white' : theme.colors.textSecondary} />
+              <FileText size={15} color={activeTab === 'terms' ? 'white' : theme.colors.textSecondary} />
               <Text style={[styles.tabButtonText, { color: activeTab === 'terms' ? 'white' : theme.colors.textSecondary }]}>
                 {t('termsOfService')}
               </Text>
             </TouchableOpacity>
-          </View>
 
-          <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}>
-            <Ionicons name="close" size={24} color={theme.colors.text} />
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === 'eula' && { backgroundColor: theme.colors.primary }]}
+              onPress={() => setActiveTab('eula')}
+              activeOpacity={0.7}
+            >
+              <Scroll size={15} color={activeTab === 'eula' ? 'white' : theme.colors.textSecondary} />
+              <Text style={[styles.tabButtonText, { color: activeTab === 'eula' ? 'white' : theme.colors.textSecondary }]}>
+                {t('eula') || 'EULA'}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+
+          <TouchableOpacity
+            onPress={onClose}
+            style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
+            accessibilityRole="button"
+            accessibilityLabel={t('cancel') || 'Kapat'}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={22} color={theme.colors.text} />
           </TouchableOpacity>
         </View>
 
         {/* Content */}
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={true}>
-          {activeTab === 'privacy' ? renderPrivacyContent() : renderTermsContent()}
+          {activeTab === 'privacy' && renderPrivacyContent()}
+          {activeTab === 'terms' && renderTermsContent()}
+          {activeTab === 'eula' && renderEulaContent()}
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 };
@@ -165,20 +285,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
   },
-  tabButtons: {
+  tabButtonsScroll: {
     flexDirection: 'row',
     gap: 8,
-    flex: 1,
+    alignItems: 'center',
+    paddingRight: 8,
   },
   tabButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 16,
   },
   tabButtonText: {
@@ -208,7 +329,7 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 12,
     fontWeight: '500',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subheading: {
     fontSize: 16,
@@ -218,6 +339,21 @@ const styles = StyleSheet.create({
   paragraph: {
     fontSize: 14,
     lineHeight: 22,
+  },
+  webLinkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginVertical: 6,
+  },
+  webLinkText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 

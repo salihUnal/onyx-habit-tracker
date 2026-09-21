@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Modal, Alert, Platform, SectionList, KeyboardAvoidingView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useHabits } from '../../context/HabitContext';
@@ -9,28 +10,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Zap, Plus, Share2, Check, Briefcase, BookOpen, Brain, Dumbbell, Heart, Clock, Search, Filter, Edit2, X, Star, Trash2, Tag, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BlurView } from 'expo-blur';
 import StreakRescueModal from '../../components/StreakRescueModal';
-
-let AdManager;
-try {
-    AdManager = require('../../ads/AdManager').default;
-} catch (e) {
-    console.log('AdManager not available');
-}
-
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-    }),
-});
+import NotificationService from '../../services/NotificationService';
 
 const HabitsScreen = ({ navigation }) => {
+    const insets = useSafeAreaInsets();
     const theme = useTheme();
     const colors = theme?.colors || {};
     const { user, isPro } = useUser();
@@ -99,8 +85,8 @@ const HabitsScreen = ({ navigation }) => {
     const progress = (habits || []).length > 0 ? completedCount / habits.length : 0;
 
     useEffect(() => {
-        registerForPushNotificationsAsync();
-        scheduleDailyNotification();
+        NotificationService.init();
+        NotificationService.scheduleDailyReview();
         loadCustomCategories();
     }, []);
 
@@ -191,46 +177,11 @@ const HabitsScreen = ({ navigation }) => {
         }
     };
 
-    const registerForPushNotificationsAsync = async () => {
-        if (Platform.OS === 'android') {
-            await Notifications.setNotificationChannelAsync('default', {
-                name: 'default',
-                importance: Notifications.AndroidImportance.MAX,
-                vibrationPattern: [0, 250, 250, 250],
-                lightColor: '#FF231F7C',
-            });
-        }
-
-        if (Device.isDevice) {
-            const { status: existingStatus } = await Notifications.getPermissionsAsync();
-            let finalStatus = existingStatus;
-            if (existingStatus !== 'granted') {
-                const { status } = await Notifications.requestPermissionsAsync();
-                finalStatus = status;
-            }
-            if (finalStatus !== 'granted') {
-                return;
-            }
-        }
-    };
-
-    const scheduleDailyNotification = async () => {
-        await Notifications.cancelAllScheduledNotificationsAsync();
-        await Notifications.scheduleNotificationAsync({
-            content: {
-                title: "Good Morning! ☀️",
-                body: "Time to check your habits for today!",
-            },
-            trigger: {
-                hour: 9,
-                minute: 0,
-                repeats: true,
-            },
-        });
-    };
-
-    const handleSaveHabit = () => {
+    const handleSaveHabit = async () => {
         if (habitName.trim()) {
+            if (reminderTime) {
+                await NotificationService.requestPermissions();
+            }
             if (editingHabit) {
                 updateHabit(editingHabit.id, {
                     name: habitName,
@@ -364,7 +315,7 @@ const HabitsScreen = ({ navigation }) => {
     }, []);
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.container, { backgroundColor: colors.background, paddingTop: Math.max(insets.top + 10, 48) }]}>
             {showConfetti && (
                 <ConfettiCannon
                     count={200}
@@ -479,10 +430,12 @@ const HabitsScreen = ({ navigation }) => {
                         <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
                             {t('noHabitsDesc') || 'Hayatını değiştirmeye başlamak için ilk alışkanlığını ekle.'}
                         </Text>
-                        <TouchableOpacity activeOpacity={0.7} 
+                        <TouchableOpacity
                             style={[styles.emptyButton, { backgroundColor: colors.primary }]}
                             onPress={() => openModal()}
                             activeOpacity={0.7}
+                            accessibilityRole="button"
+                            accessibilityLabel={t('addHabit') || 'Alışkanlık Ekle'}
                         >
                             <Plus size={20} color="white" />
                             <Text style={styles.emptyButtonText}>{t('addHabit') || 'Alışkanlık Ekle'}</Text>
@@ -532,10 +485,12 @@ const HabitsScreen = ({ navigation }) => {
                                             // Show rescue badge if yesterday was missed and habit has streak or history
                                             if (!isYesterdayCompleted && (item.streak > 0 || (item.completedDates && item.completedDates.length > 0))) {
                                                 return (
-                                                    <TouchableOpacity activeOpacity={0.7}
+                                                    <TouchableOpacity
                                                         onPress={() => openRescueModal(item)}
                                                         style={styles.rescueBadgeButton}
                                                         activeOpacity={0.8}
+                                                        accessibilityRole="button"
+                                                        accessibilityLabel={t('rescueStreak') || 'Seriyi Kurtar'}
                                                     >
                                                         <Text style={styles.rescueBadgeText}>❄️ {t('rescueStreak') || 'Seriyi Kurtar'}</Text>
                                                     </TouchableOpacity>
@@ -862,7 +817,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
-        paddingTop: 60,
     },
     header: {
         flexDirection: 'row',

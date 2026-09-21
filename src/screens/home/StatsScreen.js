@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useHabits } from '../../context/HabitContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -11,6 +12,7 @@ import { generateAICoachReport } from '../../services/AICoachService';
 const { width } = Dimensions.get('window');
 
 const StatsScreen = ({ navigation }) => {
+    const insets = useSafeAreaInsets();
     const theme = useTheme();
     const { habits, breakHabits, focusHistory } = useHabits();
     const { t, language } = useLanguage();
@@ -130,7 +132,7 @@ const StatsScreen = ({ navigation }) => {
     );
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top + 10, 48) }]}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('shortReport')}</Text>
 
@@ -281,10 +283,12 @@ const StatsScreen = ({ navigation }) => {
                                     </View>
                                 </View>
 
-                                <TouchableOpacity activeOpacity={0.7}
+                                <TouchableOpacity
                                     style={styles.unlockBtn}
                                     onPress={() => navigation.navigate('Paywall')}
                                     activeOpacity={0.8}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={t('unlockAICoach') || 'Onyx Pro ile Kişisel AI Koçunu Aç'}
                                 >
                                     <LinearGradient
                                         colors={['#8B5CF6', '#D946EF']}
@@ -423,7 +427,7 @@ const StatsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, paddingTop: 60 },
+    container: { flex: 1 },
     scrollContent: { padding: 20, paddingBottom: 100 },
     headerTitle: { fontSize: 32, fontWeight: 'bold', marginBottom: 24 },
     statsGrid: { flexDirection: 'row', gap: 15, marginBottom: 20 },

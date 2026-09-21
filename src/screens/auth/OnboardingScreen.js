@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, SafeAreaView, Modal, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Modal, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,6 +39,7 @@ const onboardingData = [
 ];
 
 const OnboardingScreen = ({ navigation, onComplete }) => {
+    const insets = useSafeAreaInsets();
     const theme = useTheme();
     const { t, language, setLanguage } = useLanguage();
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -49,6 +51,8 @@ const OnboardingScreen = ({ navigation, onComplete }) => {
         { code: 'Spanish', label: 'Español' },
         { code: 'German', label: 'Deutsch' },
         { code: 'Italian', label: 'Italiano' },
+        { code: 'Russian', label: 'Русский' },
+        { code: 'Chinese', label: '中文' }
     ];
 
     const handleNext = async () => {
@@ -68,10 +72,17 @@ const OnboardingScreen = ({ navigation, onComplete }) => {
     const Icon = currentSlide.icon;
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.container, { backgroundColor: theme.colors.background, paddingBottom: Math.max(insets.bottom, 20) }]}>
             {/* Language Button */}
-            <TouchableOpacity activeOpacity={0.7}
-                style={[styles.langButton, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
+            <TouchableOpacity
+                activeOpacity={0.7}
+                style={[
+                    styles.langButton,
+                    {
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        top: Math.max(insets.top + 10, 48),
+                    }
+                ]}
                 onPress={() => setLanguageModalVisible(true)}
             >
                 <Globe size={16} color={theme.colors.textSecondary} />
@@ -144,7 +155,7 @@ const OnboardingScreen = ({ navigation, onComplete }) => {
                     </View>
                 </BlurView>
             </Modal>
-        </SafeAreaView>
+        </View>
     );
 };
 
@@ -161,7 +172,7 @@ const styles = StyleSheet.create({
     buttonContainer: { width: '100%' },
     button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 18, borderRadius: 20, gap: 10 },
     buttonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-    langButton: { position: 'absolute', top: 60, right: 24, flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, gap: 6, zIndex: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    langButton: { position: 'absolute', right: 24, flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, gap: 6, zIndex: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
     langButtonText: { fontWeight: '600', fontSize: 12 },
     modalOverlay: { flex: 1, justifyContent: 'center', padding: 24 },
     modalContent: { padding: 24, borderRadius: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },

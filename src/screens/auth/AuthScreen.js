@@ -9,9 +9,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Globe, Zap } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
 const AuthScreen = () => {
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { login, loginWithDummyUser, googleLogin, emailLogin, emailSignup, resetPassword } = useUser();
   const { t, language, setLanguage } = useLanguage();
@@ -287,8 +289,15 @@ const AuthScreen = () => {
       <View style={styles.glowOrbBottom} />
 
       {/* Language Button */}
-      <TouchableOpacity activeOpacity={0.7}
-        style={[styles.langButton, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        style={[
+          styles.langButton,
+          {
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            top: Math.max(insets.top + 10, 48),
+          }
+        ]}
         onPress={() => setLanguageModalVisible(true)}
       >
         <Globe size={16} color={theme.colors.textSecondary} />
@@ -649,7 +658,6 @@ const styles = StyleSheet.create({
   },
   langButton: {
     position: 'absolute',
-    top: 60,
     right: 24,
     flexDirection: 'row',
     alignItems: 'center',

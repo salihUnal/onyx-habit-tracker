@@ -80,17 +80,21 @@ Kapsamlı kod incelemesi sonucunda 14 dosyada toplam 45+ UI/UX, Erişilebilirlik
 | 2 | A11Y | 🟢 MINOR | Çeşitli | Modallar ve butonlar ekran okuyuculara bilgi vermiyor. | `accessibilityLabel` ve `accessibilityRole` projenin geneline yayılmalı. |
 | 3 | Tema | 🟡 MAJOR | Çeşitli | Uyarı/Kurtarma modalındaki renkler (`#38BDF8`, vb.) hardcoded. | Tasarım sistemi `colors.js` içerisine Warning/Info renkleri olarak eklenip oradan çekilmeli. |
 
-## Developer Agent İçin Önceliklendirilmiş Görev Listesi
+## Developer Agent İçin Önceliklendirilmiş Görev Listesi & Son Durum
 
-### 🔴 KRİTİK (Hemen düzelt)
-1. **HabitsScreen.js (Satır 467-558):** `groupedHabits` dizisi boş olduğunda (örneğin CLEAN profilinde) ekranda kullanıcıyı yönlendiren "Alışkanlığın Yok, Hemen Ekle" şeklinde bir Empty State tasarımı ekle.
-2. **AuthScreen.js (Satır 380-488):** E-posta giriş ve kayıt modallarındaki (`emailModalVisible`) form yapısını `KeyboardAvoidingView` (iOS için `behavior="padding"`) ile sar.
-3. **BreakStreakScreen.js (Satır 213-252):** Kötü alışkanlık ekleme modalındaki (`isModalVisible`) yapıyı `KeyboardAvoidingView` içine alarak klavye açıldığında inputun kapanmasını engelle.
+### 🔴 KRİTİK (Tümü Tamamlandı ✅)
+1. [✅ ÇÖZÜLDÜ] **HabitsScreen.js:** `groupedHabits` dizisi boş olduğunda (örneğin CLEAN profilinde) ekranda kullanıcıyı yönlendiren "Alışkanlığın Yok, Hemen Ekle" Empty State tasarımı eklendi.
+2. [✅ ÇÖZÜLDÜ] **AuthScreen.js:** E-posta giriş ve kayıt modallarındaki (`emailModalVisible`) form yapısı `KeyboardAvoidingView` ile sarmalandı.
+3. [✅ ÇÖZÜLDÜ] **BreakStreakScreen.js:** Kötü alışkanlık ekleme modalındaki (`isModalVisible`) yapı `KeyboardAvoidingView` içine alındı.
 
-### 🟡 MAJOR (Önemli)
-4. **SafeArea Standardizasyonu:** Ana ekran konteynerlerinde (`HabitsScreen`, `AuthScreen`, `HomeScreen`, `StatsScreen`, `BreakStreakScreen`) `react-native-safe-area-context`'ten `useSafeAreaInsets` hook'unu kullanarak `paddingTop` ve `paddingBottom` değerlerini dinamik ata.
-5. **Tema Renkleri (colors.js) Temizliği:** Projedeki `#EF4444` (Kırmızı), `#10B981` (Yeşil), `#F59E0B` (Turuncu) gibi hardcoded hex değerlerini `theme.colors.error`, `theme.colors.success`, `theme.colors.notification` olarak değiştir. Eksik renkleri `colors.js` dosyasına ekle.
+### 🟡 MAJOR (Tümü Tamamlandı ✅)
+4. [✅ ÇÖZÜLDÜ] **SafeArea Standardizasyonu:** Tüm ana ve modal ekranlarda (`HabitsScreen`, `AuthScreen`, `HomeScreen`, `StatsScreen`, `BreakStreakScreen`, `SettingsScreen`, `PaywallScreen`, `WidgetStoreScreen`, `LegalModal`) `react-native-safe-area-context`'ten `useSafeAreaInsets` kullanılarak çentik, status bar ve home bar taşmaları giderildi.
+5. [✅ ÇÖZÜLDÜ] **Tema Renkleri (colors.js) Temizliği:** Tasarım sistemine `error`, `success`, `warning`, `info`, `accent`, `gold` renkleri eklendi.
+6. [✅ ÇÖZÜLDÜ] **Restore Purchases & Paywall Yasal Standartları (2026-09-21):** Restore butonu herkese görünür kılındı, yüklenme göstergesi ve başarısızlık uyarısı eklendi, 7 dilde yasal sözlük ve harici web bağlantıları tanımlandı.
+7. [✅ ÇÖZÜLDÜ] **Android 13+ Bildirim Mimarisi (2026-09-21):** `POST_NOTIFICATIONS` izni ve `NotificationService.js` geliştirilerek alışkanlık saat alarmları bağlandı.
+8. [✅ ÇÖZÜLDÜ] **Firebase Çevrimdışı Dayanıklılık (2026-09-21):** 5 saniyelik zaman aşımı korumasıyla çevrimdışı donmalar engellendi.
 
-### 🟢 MINOR (Geliştirme)
-6. **activeOpacity Eklenmesi:** Projedeki tüm `TouchableOpacity` bileşenlerine varsayılan tıklama hissiyatı için `activeOpacity={0.7}` (veya tasarıma uygun bir değer) ekle.
-7. **Erişilebilirlik (A11Y) İyileştirmeleri:** Tüm ikonik ve metin butonlarına `accessibilityRole="button"` ve ekran okuyucu dostu `accessibilityLabel` (örneğin "Ayarları Aç", "Alışkanlık Ekle") özelliklerini ekle.
+### 🟢 MINOR (Tümü Tamamlandı ✅)
+9. [✅ ÇÖZÜLDÜ] **activeOpacity Eklenmesi:** Projedeki tüm `TouchableOpacity` bileşenlerine standart tıklama geribildirimi için `activeOpacity={0.7}` eklendi.
+10. [✅ ÇÖZÜLDÜ] **Erişilebilirlik (A11Y) İyileştirmeleri:** Tüm ikonik ve metin butonlarına `accessibilityRole="button"` ve ekran okuyucu dostu `accessibilityLabel` özellikleri eklendi.
+

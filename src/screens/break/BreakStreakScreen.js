@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Modal, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -9,6 +10,7 @@ import { Unlink, Plus, Trash2, TrendingDown, Award, Calendar } from 'lucide-reac
 import ConfettiCannon from 'react-native-confetti-cannon';
 
 const BreakStreakScreen = ({ navigation }) => {
+    const insets = useSafeAreaInsets();
     const theme = useTheme();
     const colors = theme?.colors || {};
     const { isPro } = useUser();
@@ -97,7 +99,7 @@ const BreakStreakScreen = ({ navigation }) => {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.container, { backgroundColor: colors.background, paddingTop: Math.max(insets.top + 10, 48) }]}>
             {showConfetti && (
                 <ConfettiCannon
                     count={200}
@@ -329,7 +331,7 @@ const BreakStreakScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20, paddingTop: 60 },
+    container: { flex: 1, padding: 20 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     title: { fontSize: 28, fontWeight: 'bold' },
     subtitle: { fontSize: 14, marginTop: 4 },
