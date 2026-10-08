@@ -7,9 +7,10 @@ const Config = {
 
     // AdMob Configuration
     ADMOB_APP_ID_ANDROID: 'ca-app-pub-9005956424727190~4380402516',
-    ADMOB_REWARDED_ID: 'ca-app-pub-9005956424727190/2074459914',     // Actual ID
-    ADMOB_BANNER_ID: 'ca-app-pub-9005956424727190/6614849461',       // Actual ID
-    ADMOB_INTERSTITIAL_ID: 'ca-app-pub-9005956424727190/3997259137', // Actual ID
+    ADMOB_REWARDED_ID: 'ca-app-pub-9005956424727190/2074459914',     // Normal Ödüllü Reklam
+    ADMOB_REWARDED_INTERSTITIAL_ID: 'ca-app-pub-9005956424727190/9058014129', // Ödüllü Geçiş Reklamı
+    ADMOB_BANNER_ID: 'ca-app-pub-9005956424727190/6614849461',       // Banner Reklam
+    ADMOB_INTERSTITIAL_ID: 'ca-app-pub-9005956424727190/3997259137', // Geçiş Reklamı
     ADMOB_APP_OPEN_ID: 'ca-app-pub-3940256099942544/9257395915',     // Test ID for now
 
     // Firebase Configuration

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Modal, Image, TextInput, Alert, Linking, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Modal, Image, TextInput, Alert, Linking, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
@@ -439,77 +439,80 @@ const SettingsScreen = ({ navigation }) => {
 
             {/* Edit Profile Modal */}
             <Modal visible={editProfileModalVisible} transparent animationType="slide" onRequestClose={() => setEditProfileModalVisible(false)}>
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.editModalContent, { backgroundColor: theme.colors.card }]}>
-                        <View style={styles.modalHeader}>
-                            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('editProfile')}</Text>
-                            <TouchableOpacity activeOpacity={0.7} onPress={() => setEditProfileModalVisible(false)}>
-                                <Ionicons name="close" size={24} color={theme.colors.text} />
-                            </TouchableOpacity>
-                        </View>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.editModalContent, { backgroundColor: theme.colors.card }]}>
+                            <View style={styles.modalHeader}>
+                                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('editProfile')}</Text>
+                                <TouchableOpacity activeOpacity={0.7} onPress={() => setEditProfileModalVisible(false)}>
+                                    <Ionicons name="close" size={24} color={theme.colors.text} />
+                                </TouchableOpacity>
+                            </View>
 
-                        <View style={styles.avatarEditSection}>
-                            <TouchableOpacity activeOpacity={0.7} onPress={() => setAvatarOptionsVisible(true)}>
-                                {editedAvatar ? (
-                                    <Image source={{ uri: editedAvatar }} style={styles.avatarEdit} />
-                                ) : (
-                                    <View style={[styles.avatarEdit, styles.avatarPlaceholder]}>
-                                        <User size={40} color={theme.colors.textSecondary} />
+                            <View style={styles.avatarEditSection}>
+                                <TouchableOpacity activeOpacity={0.7} onPress={() => setAvatarOptionsVisible(true)}>
+                                    {editedAvatar ? (
+                                        <Image source={{ uri: editedAvatar }} style={styles.avatarEdit} />
+                                    ) : (
+                                        <View style={[styles.avatarEdit, styles.avatarPlaceholder]}>
+                                            <User size={40} color={theme.colors.textSecondary} />
+                                        </View>
+                                    )}
+                                    <View style={styles.cameraIconContainer}>
+                                        <Camera size={16} color="#FFFFFF" />
                                     </View>
-                                )}
-                                <View style={styles.cameraIconContainer}>
-                                    <Camera size={16} color="#FFFFFF" />
-                                </View>
-                            </TouchableOpacity>
-                            <Text style={[styles.changeAvatarText, { color: theme.colors.primary }]}>{t('changeAvatar')}</Text>
-                        </View>
+                                </TouchableOpacity>
+                                <Text style={[styles.changeAvatarText, { color: theme.colors.primary }]}>{t('changeAvatar')}</Text>
+                            </View>
 
-                        <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>{t('name')}</Text>
-                        <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                            <User size={20} color={theme.colors.textSecondary} />
-                            <TextInput
-                                style={[styles.input, { color: theme.colors.text }]}
-                                value={editedName}
-                                onChangeText={setEditedName}
-                                placeholder={t('name')}
-                                placeholderTextColor={theme.colors.textSecondary}
-                            />
-                        </View>
+                            <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>{t('name')}</Text>
+                            <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                                <User size={20} color={theme.colors.textSecondary} />
+                                <TextInput
+                                    style={[styles.input, { color: theme.colors.text }]}
+                                    value={editedName}
+                                    onChangeText={setEditedName}
+                                    placeholder={t('name')}
+                                    placeholderTextColor={theme.colors.textSecondary}
+                                />
+                            </View>
 
-                        <Text style={[styles.inputLabel, { color: theme.colors.textSecondary, marginTop: 16 }]}>{t('email')}</Text>
-                        <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                            <Ionicons name="mail-outline" size={20} color={theme.colors.textSecondary} />
-                            <TextInput
-                                style={[styles.input, { color: theme.colors.text }]}
-                                value={editedEmail}
-                                onChangeText={setEditedEmail}
-                                placeholder={t('email')}
-                                placeholderTextColor={theme.colors.textSecondary}
-                                keyboardType="email-address"
-                            />
-                        </View>
+                            <Text style={[styles.inputLabel, { color: theme.colors.textSecondary, marginTop: 16 }]}>{t('email')}</Text>
+                            <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                                <Ionicons name="mail-outline" size={20} color={theme.colors.textSecondary} />
+                                <TextInput
+                                    style={[styles.input, { color: theme.colors.text }]}
+                                    value={editedEmail}
+                                    onChangeText={setEditedEmail}
+                                    placeholder={t('email')}
+                                    placeholderTextColor={theme.colors.textSecondary}
+                                    keyboardType="email-address"
+                                />
+                            </View>
 
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity activeOpacity={0.7}
-                                style={[styles.modalButton, styles.cancelButton, { backgroundColor: theme.colors.surface }]}
-                                onPress={() => setEditProfileModalVisible(false)}
-                            >
-                                <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity activeOpacity={0.7}
-                                style={[styles.modalButton, styles.saveButton, { backgroundColor: theme.colors.primary }]}
-                                onPress={handleSaveProfile}
-                            >
-                                <Text style={styles.saveButtonText}>{t('save')}</Text>
-                            </TouchableOpacity>
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity activeOpacity={0.7}
+                                    style={[styles.modalButton, styles.cancelButton, { backgroundColor: theme.colors.surface }]}
+                                    onPress={() => setEditProfileModalVisible(false)}
+                                >
+                                    <Text style={{ color: theme.colors.text }}>{t('cancel')}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity activeOpacity={0.7}
+                                    style={[styles.modalButton, styles.saveButton, { backgroundColor: theme.colors.primary }]}
+                                    onPress={handleSaveProfile}
+                                >
+                                    <Text style={styles.saveButtonText}>{t('save')}</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
 
             {/* Set Password Modal */}
             <Modal visible={passwordModalVisible} transparent animationType="slide" onRequestClose={() => setPasswordModalVisible(false)}>
-                <View style={styles.modalOverlay}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+                    <View style={styles.modalOverlay}>
                     <View style={[styles.editProfileContent, { backgroundColor: theme.colors.card }]}>
                         <View style={styles.modalHeader}>
                             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('setPasswordTitle') || 'Şifre Belirle / Değiştir'}</Text>
@@ -569,7 +572,8 @@ const SettingsScreen = ({ navigation }) => {
                         </View>
                     </View>
                 </View>
-            </Modal>
+            </KeyboardAvoidingView>
+        </Modal>
 
             {/* Avatar Options Modal */}
             <Modal visible={avatarOptionsVisible} transparent animationType="fade" onRequestClose={() => setAvatarOptionsVisible(false)}>

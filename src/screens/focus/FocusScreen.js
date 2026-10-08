@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Keyboard, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Keyboard, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { useUser } from '../../context/UserContext';
@@ -113,91 +113,95 @@ const FocusScreen = ({ navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1, backgroundColor: theme.colors.background }}
     >
-      <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 16) }]}>
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: theme.colors.text }]}>{t('focusMode')}</Text>
+      <ScrollView
+        contentContainerStyle={[styles.container, { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom + 80, 80) }]}
+        bounces={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.content}>
+          <Text style={[styles.title, { color: theme.colors.text }]}>{t('focusMode')}</Text>
 
-        <View style={[styles.timerContainer, { borderColor: theme.colors.primary }]}>
-          <Text style={[styles.timerText, { color: theme.colors.text }]}>
-            {formatTime(displayTime)}
-          </Text>
-        </View>
+          <View style={[styles.timerContainer, { borderColor: theme.colors.primary }]}>
+            <Text style={[styles.timerText, { color: theme.colors.text }]}>
+              {formatTime(displayTime)}
+            </Text>
+          </View>
 
-        <View style={styles.durationContainer}>
-          {durations.map((duration) => (
+          <View style={styles.durationContainer}>
+            {durations.map((duration) => (
+              <TouchableOpacity activeOpacity={0.7}
+                key={duration}
+                style={[
+                  styles.durationButton,
+                  selectedDuration === duration && { backgroundColor: theme.colors.primary },
+                  { borderColor: theme.colors.border, borderWidth: 1 }
+                ]}
+                onPress={() => handleDurationSelect(duration)}
+                disabled={focusState.isActive}
+              >
+                <Text style={[
+                  styles.durationText,
+                  { color: selectedDuration === duration ? 'white' : theme.colors.text }
+                ]}>
+                  {duration}
+                </Text>
+              </TouchableOpacity>
+            ))}
+
             <TouchableOpacity activeOpacity={0.7}
-              key={duration}
-              style={[
-                styles.durationButton,
-                selectedDuration === duration && { backgroundColor: theme.colors.primary },
+              style={[styles.durationButton,
+                showCustomInput && { backgroundColor: theme.colors.primary },
                 { borderColor: theme.colors.border, borderWidth: 1 }
               ]}
-              onPress={() => handleDurationSelect(duration)}
+              onPress={() => setShowCustomInput(!showCustomInput)}
               disabled={focusState.isActive}
             >
-              <Text style={[
-                styles.durationText,
-                { color: selectedDuration === duration ? 'white' : theme.colors.text }
-              ]}>
-                {duration}
-              </Text>
-            </TouchableOpacity>
-          ))}
-
-          <TouchableOpacity activeOpacity={0.7}
-            style={[
-              styles.durationButton,
-              showCustomInput && { backgroundColor: theme.colors.primary },
-              { borderColor: theme.colors.border, borderWidth: 1 }
-            ]}
-            onPress={() => setShowCustomInput(!showCustomInput)}
-            disabled={focusState.isActive}
-          >
-            <MoreHorizontal size={20} color={showCustomInput ? 'white' : theme.colors.text} />
-          </TouchableOpacity>
-        </View>
-
-        {showCustomInput && (
-          <View style={styles.customInputContainer}>
-            <TextInput
-              style={[styles.customInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
-              placeholder={t('enterMinutes')}
-              placeholderTextColor={theme.colors.textSecondary}
-              keyboardType="number-pad"
-              value={customMinutes}
-              onChangeText={setCustomMinutes}
-              onSubmitEditing={handleCustomDurationSubmit}
-              autoFocus
-            />
-            <TouchableOpacity activeOpacity={0.7}
-              style={[styles.customButton, { backgroundColor: theme.colors.primary }]}
-              onPress={handleCustomDurationSubmit}
-            >
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>OK</Text>
+              <MoreHorizontal size={20} color={showCustomInput ? 'white' : theme.colors.text} />
             </TouchableOpacity>
           </View>
-        )}
 
-        <View style={styles.controls}>
-          <TouchableOpacity activeOpacity={0.7}
-            onPress={toggleTimer}
-            style={[styles.controlButton, { backgroundColor: theme.colors.primary }]}
-          >
-            {focusState.isActive ? (
-              <Pause size={32} color="white" fill="white" />
-            ) : (
-              <Play size={32} color="white" fill="white" />
-            )}
-          </TouchableOpacity>
+          {showCustomInput && (
+            <View style={styles.customInputContainer}>
+              <TextInput
+                style={[styles.customInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
+                placeholder={t('enterMinutes')}
+                placeholderTextColor={theme.colors.textSecondary}
+                keyboardType="number-pad"
+                value={customMinutes}
+                onChangeText={setCustomMinutes}
+                onSubmitEditing={handleCustomDurationSubmit}
+                autoFocus
+              />
+              <TouchableOpacity activeOpacity={0.7}
+                style={[styles.customButton, { backgroundColor: theme.colors.primary }]}
+                onPress={handleCustomDurationSubmit}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-          <TouchableOpacity activeOpacity={0.7}
-            onPress={resetTimer}
-            style={[styles.resetButton, { backgroundColor: theme.colors.surface }]}
-          >
-            <RotateCcw size={24} color={theme.colors.text} />
-          </TouchableOpacity>
+          <View style={styles.controls}>
+            <TouchableOpacity activeOpacity={0.7}
+              onPress={toggleTimer}
+              style={[styles.controlButton, { backgroundColor: theme.colors.primary }]}
+            >
+              {focusState.isActive ? (
+                <Pause size={32} color="white" fill="white" />
+              ) : (
+                <Play size={32} color="white" fill="white" />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity activeOpacity={0.7}
+              onPress={resetTimer}
+              style={[styles.resetButton, { backgroundColor: theme.colors.surface }]}
+            >
+              <RotateCcw size={24} color={theme.colors.text} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </ScrollView>
 
       {!isPro && (
         <TouchableOpacity activeOpacity={0.7}
@@ -216,7 +220,6 @@ const FocusScreen = ({ navigation }) => {
           </View>
         </TouchableOpacity>
       )}
-    </View>
     </KeyboardAvoidingView>
   );
 };

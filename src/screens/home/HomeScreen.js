@@ -151,7 +151,7 @@ const HomeScreen = ({ navigation }) => {
             </LinearGradient>
           </TouchableOpacity>
         )}
-        <TouchableOpacity activeOpacity={0.7}
+        <TouchableOpacity
           onPress={() => navigation.navigate('Settings')}
           style={[styles.settingsBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
           activeOpacity={0.7}
@@ -166,7 +166,7 @@ const HomeScreen = ({ navigation }) => {
     if (habitsInDanger.length === 0) return null;
 
     return (
-      <TouchableOpacity activeOpacity={0.7}
+      <TouchableOpacity
         style={[styles.dangerAlertBox, { backgroundColor: 'rgba(6, 182, 212, 0.12)', borderColor: '#06B6D4' }]}
         onPress={() => navigation.navigate('Habits')}
         activeOpacity={0.8}
@@ -190,7 +190,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const renderAICoachInsight = () => (
-    <TouchableOpacity activeOpacity={0.7}
+    <TouchableOpacity
       style={[styles.aiCoachBanner, { backgroundColor: colors.surface, borderColor: isPro ? '#8B5CF6' : colors.border }]}
       onPress={() => navigation.navigate('Stats')}
       activeOpacity={0.8}

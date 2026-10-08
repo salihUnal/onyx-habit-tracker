@@ -17,6 +17,7 @@ const defaultHabitContext = {
   addHabit: () => ({ success: false }),
   toggleHabit: () => { },
   deleteHabit: () => { },
+  updateBreakHabit: () => ({ success: false }),
   streakFreezes: 1,
   useStreakFreeze: () => ({ success: false }),
   earnStreakFreezeWithAd: () => ({ success: false }),
@@ -595,6 +596,14 @@ export const HabitProvider = ({ children }) => {
     saveBreakHabits(newBreakHabits);
   };
 
+  const updateBreakHabit = (id, newName) => {
+    const newBreakHabits = breakHabits.map(habit =>
+      habit.id === id ? { ...habit, name: newName.trim() } : habit
+    );
+    saveBreakHabits(newBreakHabits);
+    return { success: true };
+  };
+
   const repairStreak = (id) => {
     const today = new Date();
     const yesterday = new Date(today);
@@ -681,6 +690,7 @@ export const HabitProvider = ({ children }) => {
       streakFreezes,
       breakHabits,
       addBreakHabit,
+      updateBreakHabit,
       toggleBreakHabit,
       deleteBreakHabit,
       focusSessionsToday,

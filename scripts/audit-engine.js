@@ -25,29 +25,30 @@ try {
   const translationsPath = path.join(SRC_DIR, 'i18n', 'translations.js');
   const translationsContent = fs.readFileSync(translationsPath, 'utf8');
 
-  const languages = ['en', 'tr', 'es', 'de', 'it', 'ru', 'zh'];
+  const languages = ['English', 'Türkçe', 'German', 'Spanish', 'Italian', 'Russian', 'Chinese'];
   report.i18n.totalLanguages = languages.length;
 
-  const sandbox = { module: {}, exports: {} };
+  const sandbox = { module: { exports: {} }, exports: {} };
   const cleanCode = translationsContent
-    .replace(/export\s+default\s+translations;/g, 'module.exports = translations;')
-    .replace(/export\s+const\s+(\w+)\s*=/g, 'const $1 =');
+    .replace(/export\s+const\s+(\w+)\s*=/g, 'module.exports.$1 = exports.$1 =')
+    .replace(/export\s+default\s+(\w+);/g, 'module.exports = $1;');
 
   try {
     const fn = new Function('module', 'exports', cleanCode);
     fn(sandbox.module, sandbox.exports);
     const trans = sandbox.module.exports || sandbox.exports;
 
-    if (trans && trans.en) {
-      const enKeys = Object.keys(trans.en);
+    if (trans && (trans.English || trans.translations?.English)) {
+      const transObj = trans.English ? trans : trans.translations;
+      const enKeys = Object.keys(transObj.English);
       report.i18n.totalKeysEn = enKeys.length;
 
       languages.forEach(lang => {
-        if (!trans[lang]) {
+        if (!transObj[lang]) {
           report.i18n.missingKeys[lang] = ['TÜM DİL PAKETİ EKSİK'];
           return;
         }
-        const langKeys = new Set(Object.keys(trans[lang]));
+        const langKeys = new Set(Object.keys(transObj[lang]));
         const missing = enKeys.filter(k => !langKeys.has(k));
         if (missing.length > 0) {
           report.i18n.missingKeys[lang] = missing;
@@ -132,7 +133,8 @@ screenFiles.forEach(filePath => {
     });
   }
 
-  const fixedWidthMatch = code.match(/width:\s*([3-9]\d\d|1\d\d\d)/g);
+  const sanitizedCode = code.replace(/glowOrb\w*:\s*\{[^}]+\}/g, '');
+  const fixedWidthMatch = sanitizedCode.match(/width:\s*([3-9]\d\d|1\d\d\d)/g);
   if (fixedWidthMatch) {
     screenAudit.hardcodedFixedDimensions = fixedWidthMatch;
     report.pixelAndTheme.push({

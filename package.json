@@ -5,7 +5,12 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
-    "android-win": "cross-env JAVA_HOME=D:/jdk-17 ANDROID_HOME=C:/Users/SALIHN~1/AppData/Local/Android/Sdk HOME=D:/gradle_cache USERPROFILE=D:/gradle_cache GRADLE_USER_HOME=D:/gradle_cache/.gradle npx expo run:android",
+    "android-win": "powershell -Command \"$env:JAVA_HOME='D:\\jdk-17'; $env:PATH='D:\\jdk-17\\bin;' + $env:PATH; $env:ANDROID_HOME='C:\\Users\\SALIHN~1\\AppData\\Local\\Android\\Sdk'; $env:GRADLE_USER_HOME='D:\\gradle_cache\\.gradle'; npx expo run:android\"",
+    "build:aab": "powershell -Command \"$env:JAVA_HOME='D:\\jdk-17'; $env:PATH='D:\\jdk-17\\bin;' + $env:PATH; $env:ANDROID_HOME='C:\\Users\\SALIHN~1\\AppData\\Local\\Android\\Sdk'; $env:GRADLE_USER_HOME='D:\\gradle_cache\\.gradle'; cd android; .\\gradlew.bat bundleRelease; cd ..\"",
+    "build:apk": "powershell -Command \"$env:JAVA_HOME='D:\\jdk-17'; $env:PATH='D:\\jdk-17\\bin;' + $env:PATH; $env:ANDROID_HOME='C:\\Users\\SALIHN~1\\AppData\\Local\\Android\\Sdk'; $env:GRADLE_USER_HOME='D:\\gradle_cache\\.gradle'; cd android; .\\gradlew.bat assembleRelease; cd ..\"",
+    "test:audit": "node scripts/audit-engine.js",
+    "test:all": "node scripts/run-all-tests.js",
+    "test:users": "node scripts/test_dummy_users.js",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "eject": "expo eject"

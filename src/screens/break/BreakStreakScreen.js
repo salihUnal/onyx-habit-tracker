@@ -15,7 +15,7 @@ const BreakStreakScreen = ({ navigation }) => {
     const colors = theme?.colors || {};
     const { isPro } = useUser();
     const { t } = useLanguage();
-    const { breakHabits, addBreakHabit, toggleBreakHabit, deleteBreakHabit, extraHabits } = useHabits();
+    const { breakHabits, addBreakHabit, updateBreakHabit, toggleBreakHabit, deleteBreakHabit, extraHabits } = useHabits();
 
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [habitName, setHabitName] = useState('');
@@ -54,6 +54,7 @@ const BreakStreakScreen = ({ navigation }) => {
     const handleSave = () => {
         if (habitName.trim()) {
             if (editingHabit) {
+                updateBreakHabit(editingHabit.id, habitName);
                 closeModal();
             } else {
                 const result = addBreakHabit(habitName);

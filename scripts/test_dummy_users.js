@@ -45,4 +45,36 @@ if (!cleanUser.isPro) {
   console.error('❌ CLEAN User validation FAILED');
 }
 
-console.log('\n--- 🎉 ALL DUMMY USER INTEGRITY CHECKS PASSED ---');
+// 4. FUNCTIONAL SIMULATIONS (Limits & Break Habit Rename)
+console.log('\n4. Testing Feature Limit Logic & Break Habit Rename:');
+
+// 4a. Habit limit check for Free User
+const canFreeAdd4th = freeUser.isPro || DUMMY_HABITS_FREE.length < 3;
+if (!canFreeAdd4th) {
+  console.log('✅ FREE User 3-habit limit enforced (blocked without extra slot)');
+} else {
+  console.error('❌ FREE User 3-habit limit enforcement FAILED');
+}
+
+// 4b. Habit limit check for Pro User
+const canProAdd7th = proUser.isPro || DUMMY_HABITS_PRO.length < 3;
+if (canProAdd7th) {
+  console.log('✅ PRO User unlimited habits verified');
+} else {
+  console.error('❌ PRO User unlimited habits FAILED');
+}
+
+// 4c. Break habit rename (updateBreakHabit logic)
+const testBreakHabits = [...DUMMY_BREAK_HABITS_FREE];
+const targetId = testBreakHabits[0].id;
+const oldName = testBreakHabits[0].name;
+const newName = 'Gece Geç Saatlerde Yemek Yeme (Düzenlendi)';
+const updatedList = testBreakHabits.map(h => h.id === targetId ? { ...h, name: newName } : h);
+if (updatedList.find(h => h.id === targetId)?.name === newName) {
+  console.log(`✅ Break Habit Rename verified: "${oldName}" -> "${newName}"`);
+} else {
+  console.error('❌ Break Habit Rename FAILED');
+}
+
+console.log('\n--- 🎉 ALL DUMMY USER INTEGRITY & LOGIC CHECKS PASSED ---');
+

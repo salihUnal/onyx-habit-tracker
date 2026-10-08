@@ -5,6 +5,7 @@ import mobileAds, {
     MaxAdContentRating,
     TestIds,
     RewardedAd,
+    RewardedInterstitialAd,
     RewardedAdEventType,
     InterstitialAd,
     AdEventType,
@@ -20,6 +21,7 @@ class AdManager {
     isInitialized = false;
     interstitialAd = null;
     rewardedAd = null;
+    rewardedInterstitialAd = null;
 
     static getInstance() {
         if (!AdManager.instance) {
@@ -55,6 +57,7 @@ class AdManager {
             this.isInitialized = true;
             this.preloadInterstitial();
             this.preloadRewarded();
+            this.preloadRewardedInterstitial();
         } catch (e) {
             console.error('AdMob Init Error:', e);
         }
@@ -103,6 +106,18 @@ class AdManager {
         this.rewardedAd.load();
     }
 
+    preloadRewardedInterstitial() {
+        if (!RewardedInterstitialAd) return;
+        const adUnitId = __DEV__ ? TestIds.REWARDED_INTERSTITIAL : (Config.ADMOB_REWARDED_INTERSTITIAL_ID || Config.ADMOB_REWARDED_ID);
+        this.rewardedInterstitialAd = RewardedInterstitialAd.createForAdRequest(adUnitId, {
+            requestNonPersonalizedAdsOnly: true,
+        });
+        this.rewardedInterstitialAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
+            console.log('Rewarded Interstitial Loaded');
+        });
+        this.rewardedInterstitialAd.load();
+    }
+
     showRewarded(onEarnedReward, onClosed) {
         if (this.rewardedAd && this.rewardedAd.loaded) {
             const earnedSub = this.rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => {
@@ -115,10 +130,34 @@ class AdManager {
                 if (onClosed) onClosed();
             });
             this.rewardedAd.show();
+        } else if (this.rewardedInterstitialAd && this.rewardedInterstitialAd.loaded) {
+            // Akıllı Fallback: Normal ödüllü henüz hazır değilse Ödüllü Geçiş Reklamını göster
+            console.log('Standard rewarded not ready, falling back to Rewarded Interstitial');
+            this.showRewardedInterstitial(onEarnedReward, onClosed);
         } else {
-            console.log('Rewarded ad not ready');
+            console.log('Rewarded ads not ready');
             if (onClosed) onClosed();
             this.preloadRewarded();
+            this.preloadRewardedInterstitial();
+        }
+    }
+
+    showRewardedInterstitial(onEarnedReward, onClosed) {
+        if (this.rewardedInterstitialAd && this.rewardedInterstitialAd.loaded) {
+            const earnedSub = this.rewardedInterstitialAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => {
+                onEarnedReward(reward);
+            });
+            const closeSub = this.rewardedInterstitialAd.addAdEventListener(RewardedAdEventType.CLOSED, () => {
+                earnedSub.remove();
+                closeSub.remove();
+                this.preloadRewardedInterstitial(); // Yeniden yükle
+                if (onClosed) onClosed();
+            });
+            this.rewardedInterstitialAd.show();
+        } else {
+            console.log('Rewarded Interstitial ad not ready');
+            if (onClosed) onClosed();
+            this.preloadRewardedInterstitial();
         }
     }
 }
