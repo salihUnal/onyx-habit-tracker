@@ -4,7 +4,9 @@ import { Platform } from 'react-native';
 // Set notification behavior for foreground notifications
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    // shouldShowAlert SDK 53'te kaldırıldı; yerine banner + bildirim listesi
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -143,10 +145,11 @@ class NotificationService {
           sound: true,
           channelId: 'habit-reminders',
         },
+        // SDK 52+ tetikleyicide 'type' zorunlu; hour/minute + repeats biçimi kaldırıldı
         trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: time.hour,
           minute: time.minute,
-          repeats: true,
           channelId: 'habit-reminders',
         },
       });
@@ -214,9 +217,9 @@ class NotificationService {
           channelId: 'streak-protection',
         },
         trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour,
           minute,
-          repeats: true,
           channelId: 'streak-protection',
         },
       });

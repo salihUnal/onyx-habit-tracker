@@ -4,7 +4,7 @@ import { LogBox } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import AppNavigator from './src/navigation/AppNavigator';
-import { ThemeProvider } from './src/context/ThemeContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { UserProvider } from './src/context/UserContext';
 import { HabitProvider } from './src/context/HabitContext';
 import { LanguageProvider } from './src/context/LanguageContext';
@@ -14,6 +14,12 @@ import AdManager from './src/ads/AdManager';
 LogBox.ignoreLogs([
   'Support for defaultProps will be removed',
 ]);
+
+// Durum çubuğu sistem temasını değil uygulama temasını izlemeli; aksi halde koyu temada ikonlar görünmez
+function ThemedStatusBar() {
+  const { dark } = useTheme();
+  return <StatusBar style={dark ? 'light' : 'dark'} />;
+}
 
 export default function App() {
   useEffect(() => {
@@ -28,7 +34,7 @@ export default function App() {
         <LanguageProvider>
           <UserProvider>
             <HabitProvider>
-              <StatusBar style="auto" />
+              <ThemedStatusBar />
               <AppNavigator />
             </HabitProvider>
           </UserProvider>

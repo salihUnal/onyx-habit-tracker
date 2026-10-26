@@ -7,7 +7,6 @@
     "orientation": "portrait",
     "icon": "./assets/images/onyx-app-icon-1024x1024.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/onyx-app-icon-1024x1024.png",
       "resizeMode": "contain",
@@ -32,7 +31,15 @@
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
-      "icon": "./assets/images/onyx-app-icon-512x512.png"
+      "icon": "./assets/images/onyx-app-icon-512x512.png",
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.USE_EXACT_ALARM",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/images/onyx-app-icon-512x512.png"
@@ -61,11 +68,16 @@
         {
           "android": {
             "enableMultiDex": true,
-            "kotlinVersion": "1.9.24",
-            "minSdkVersion": 24
+            "minSdkVersion": 24,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-localization",
+      "expo-web-browser",
+      "./plugins/withReleaseSigning"
     ],
     "extra": {
       "eas": {

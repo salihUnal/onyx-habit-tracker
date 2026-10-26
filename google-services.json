@@ -38,6 +38,14 @@
           }
         },
         {
+          "client_id": "405005586790-va1idppstla29318scthna88r4lb1fen.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.onyx.habittracker",
+            "certificate_hash": "daea2a7fe27e573465eb49b4d5d5c90322e9852d"
+          }
+        },
+        {
           "client_id": "405005586790-d9ccn5oeriqbvee15beth3rms8lq34ns.apps.googleusercontent.com",
           "client_type": 3
         }
