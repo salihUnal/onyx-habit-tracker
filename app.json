@@ -28,7 +28,7 @@
         "backgroundColor": "#121212"
       },
       "package": "com.onyx.habittracker",
-      "versionCode": 1,
+      "versionCode": 2,
       "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "icon": "./assets/images/onyx-app-icon-512x512.png",
