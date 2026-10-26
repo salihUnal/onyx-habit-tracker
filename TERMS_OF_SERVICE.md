@@ -54,5 +54,5 @@ https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## 7. Contact
 For questions or inquiries regarding these Terms, contact us at:
-- **Email:** support@onyxhabittracker.com / salihyedekler@gmail.com
+- **Email:** salihyedekler@gmail.com
 - **Repository:** https://github.com/salihUnal/onyx-habit-tracker

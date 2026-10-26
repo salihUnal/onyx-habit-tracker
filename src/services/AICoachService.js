@@ -1,11 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Config from '../config/Config';
 
 /**
  * AICoachService
  * Analyzes habit streaks, focus time, and clean streaks to provide
- * high-value, personalized coaching insights using either Google Gemini API
- * or a comprehensive local heuristic engine.
+ * high-value, personalized coaching insights using a local heuristic engine.
  */
 
 const CACHE_KEY_PREFIX = '@onyx_ai_coach_report_';
@@ -249,65 +247,7 @@ export const generateAICoachReport = async ({
 
   const metrics = calculateHabitMetrics(habits, breakHabits, focusHistory);
 
-  // If Gemini API Key is configured, attempt remote AI generation
-  if (Config.GEMINI_API_KEY && Config.GEMINI_API_KEY.trim().length > 10) {
-    try {
-      const prompt = `You are Onyx AI Habit Coach, a sharp, inspiring Gen-Z habit & focus coach.
-Analyze this user's data:
-- Habit Health Score: ${metrics.habitScore}/100
-- Weekly Completion: ${metrics.weeklyCompletionRate}%
-- Power Habit: ${metrics.powerHabit ? metrics.powerHabit.name + ' (' + metrics.powerHabit.streak + ' day streak)' : 'None'}
-- Vulnerable Habit: ${metrics.vulnerableHabit ? metrics.vulnerableHabit.name : 'None'}
-- Deep Focus: ${metrics.totalFocusMinutesLast7Days} minutes in past 7 days.
-Respond strictly with valid JSON with fields:
-{
-  "scoreBadge": "short title badge",
-  "coachMood": "1 punchy sentence assessment",
-  "powerHabitText": "1 encouraging sentence",
-  "vulnerableHabitText": "1 actionable advice sentence",
-  "actionableTips": [
-    {"icon": "zap", "title": "...", "text": "..."},
-    {"icon": "clock", "title": "...", "text": "..."},
-    {"icon": "shield", "title": "...", "text": "..."}
-  ],
-  "dailyQuote": "1 badass motivational quote"
-}
-Language: ${language}.`;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${Config.GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: 'application/json' },
-        }),
-      });
-
-      if (response.ok) {
-        const json = await response.json();
-        const candidate = json?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (candidate) {
-          const parsed = JSON.parse(candidate);
-          const finalReport = {
-            ...parsed,
-            habitScore: metrics.habitScore,
-            powerHabitTitle: metrics.powerHabit?.name || 'Power Habit',
-            vulnerableHabitTitle: metrics.vulnerableHabit?.name || 'Vulnerable Habit',
-            weeklyCompletionRate: metrics.weeklyCompletionRate,
-            totalFocusMinutesLast7Days: metrics.totalFocusMinutesLast7Days,
-            generatedAt: new Date().toISOString(),
-            engine: 'gemini-1.5-flash',
-          };
-          await AsyncStorage.setItem(cacheKey, JSON.stringify(finalReport));
-          return finalReport;
-        }
-      }
-    } catch (err) {
-      console.log('Gemini API call failed, falling back to heuristic engine:', err);
-    }
-  }
-
-  // Fallback / Standalone local AI engine
+  // Yerel motor. Uzak LLM eklenecekse anahtar istemciye değil backend/Cloud Function'a konmalı.
   const report = getLocalHeuristicReport(metrics, language, userName);
   try {
     await AsyncStorage.setItem(cacheKey, JSON.stringify(report));

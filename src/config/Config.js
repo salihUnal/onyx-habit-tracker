@@ -28,8 +28,8 @@ const Config = {
     GOOGLE_WEB_CLIENT_ID: '405005586790-d9ccn5oeriqbvee15beth3rms8lq34ns.apps.googleusercontent.com',
 
     // Legal & Policy URLs
-    PRIVACY_POLICY_URL: 'https://github.com/salihUnal/onyx-habit-tracker/blob/main/PRIVACY_POLICY.md',
-    TERMS_OF_SERVICE_URL: 'https://github.com/salihUnal/onyx-habit-tracker/blob/main/TERMS_OF_SERVICE.md',
+    PRIVACY_POLICY_URL: 'https://github.com/salihUnal/onyx-habit-tracker/blob/master/PRIVACY_POLICY.md',
+    TERMS_OF_SERVICE_URL: 'https://github.com/salihUnal/onyx-habit-tracker/blob/master/TERMS_OF_SERVICE.md',
     APPLE_EULA_URL: 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
 };
 

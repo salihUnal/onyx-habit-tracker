@@ -62,6 +62,33 @@ try {
   console.log('Native GoogleSignin module not available in this environment');
 }
 
+// Çıkış / hesap silme sırasında temizlenen kullanıcıya özel yerel veriler.
+// Eksik anahtar kalırsa aynı cihazda giriş yapan sonraki hesaba veri sızar.
+const USER_DATA_KEYS = [
+  'user',
+  'userProfile',
+  'isPro',
+  'habits',
+  'breakHabits',
+  'extraHabits',
+  'focusHistory',
+  'focusSessionsToday',
+  'lastFocusDate',
+  'adRewardExpiry',
+  'streakFreezes',
+];
+
+// Firebase hassas işlemler (hesap silme) için ~5 dk içinde giriş yapılmış olmasını ister.
+const RECENT_LOGIN_WINDOW_MS = 5 * 60 * 1000;
+
+// Uygulamada tek bir ücretli seviye var. Yapılandırılan entitlement ID'si
+// RevenueCat panelindekiyle eşleşmezse ödeme yapan kullanıcı Pro'yu kaybetmesin diye
+// herhangi bir aktif entitlement da Pro sayılır.
+const hasProEntitlement = (customerInfo) => {
+  const active = customerInfo?.entitlements?.active || {};
+  return Boolean(active[Config.PRO_ENTITLEMENT_ID]) || Object.keys(active).length > 0;
+};
+
 const defaultUserContext = {
   user: null,
   isPro: false,
@@ -102,12 +129,23 @@ export const UserProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    if (request) {
+    if (request && __DEV__) {
       console.log('🛠 Auth Environment isExpoGo:', isExpoGo);
       console.log('🔗 Forcing Redirect URI:', redirectUri);
-      console.log('🌐 Google Auth Request URL:', request.url);
     }
   }, [request]);
+
+  // Pro durumunu hem state'e hem çevrimdışı açılış için yerel önbelleğe yazar
+  const applyProStatus = async (customerInfo) => {
+    const pro = hasProEntitlement(customerInfo);
+    setIsPro(pro);
+    try {
+      await AsyncStorage.setItem('isPro', JSON.stringify(pro));
+    } catch (e) {
+      console.error('Failed to cache pro status', e);
+    }
+    return pro;
+  };
 
   const [confirm, setConfirm] = useState(null);
 
@@ -133,7 +171,9 @@ export const UserProvider = ({ children }) => {
           await AsyncStorage.setItem('user', JSON.stringify(userData));
           if (Purchases) {
             try {
-              await Purchases.logIn(firebaseUser.uid);
+              // Başka cihazda satın alınmış abonelik uid'ye bağlıdır; logIn sonucundaki bilgiyle Pro'yu güncelle
+              const { customerInfo } = await Purchases.logIn(firebaseUser.uid);
+              await applyProStatus(customerInfo);
             } catch (pErr) {
               console.log('RevenueCat logIn error:', pErr?.message || pErr);
             }
@@ -156,6 +196,7 @@ export const UserProvider = ({ children }) => {
 
           // User logged out / not logged in
           setUser(null);
+          setIsPro(false);
           await AsyncStorage.removeItem('user');
           if (Purchases) {
             try {
@@ -181,7 +222,22 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     checkUser();
-    if (Purchases) initPurchases();
+    if (!Purchases) return undefined;
+    initPurchases();
+    // Abonelik yenilendiğinde, iptal edildiğinde veya süresi dolduğunda Pro durumunu güncel tut
+    const listener = (customerInfo) => { applyProStatus(customerInfo); };
+    try {
+      Purchases.addCustomerInfoUpdateListener(listener);
+    } catch (e) {
+      console.log('RevenueCat listener not registered:', e?.message || e);
+    }
+    return () => {
+      try {
+        Purchases.removeCustomerInfoUpdateListener(listener);
+      } catch (e) {
+        // Purchases yapılandırılmadıysa kaldırılacak dinleyici yoktur
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -207,18 +263,9 @@ export const UserProvider = ({ children }) => {
         await Purchases.configure({ apiKey: Config.REVENUECAT_API_KEY_IOS });
       }
 
-      // Identify user if logged in
-      if (user?.id) {
-        await Purchases.logIn(user.id);
-      }
-
-      // Check customer info
+      // Kullanıcı tanımlama onAuthStateChanged içinde yapılır (bu noktada user state'i henüz dolmamıştır)
       const customerInfo = await Purchases.getCustomerInfo();
-      if (customerInfo.entitlements.active[Config.PRO_ENTITLEMENT_ID]) {
-        setIsPro(true);
-      } else {
-        setIsPro(false);
-      }
+      await applyProStatus(customerInfo);
     } catch (e) {
       console.error('RevenueCat Customer Info Error:', e);
     }
@@ -303,7 +350,11 @@ export const UserProvider = ({ children }) => {
         console.log('🚀 Initiating Native Google Sign-In...');
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
         const userInfo = await GoogleSignin.signIn();
-        const idToken = userInfo.data?.idToken || userInfo.idToken;
+        // google-signin v13+: iptal hata fırlatmaz, { type: 'cancelled' } döner
+        if (userInfo?.type === 'cancelled') {
+          return { success: false, cancelled: true };
+        }
+        const idToken = userInfo.data?.idToken;
         if (idToken) {
           const credential = GoogleAuthProvider.credential(idToken);
           await signInWithCredential(auth, credential);
@@ -402,21 +453,12 @@ export const UserProvider = ({ children }) => {
           console.log('GoogleSignin signOut ignored:', gErr?.message || gErr);
         }
       }
+      // Yerel veriyi state'i sıfırlamadan ÖNCE sil: user değişince HabitContext diski yeniden okur
+      await AsyncStorage.multiRemove(USER_DATA_KEYS);
       await signOut(auth);
       setUser(null);
-      const keysToClear = [
-        'user',
-        'userProfile',
-        'isPro',
-        'habits',
-        'breakHabits',
-        'extraHabits',
-        'focusHistory',
-        'focusSessionsToday',
-        'lastFocusDate',
-        'adRewardExpiry'
-      ];
-      await AsyncStorage.multiRemove(keysToClear);
+      // Pro state'i sıfırlanmazsa aynı cihazda giriş yapan sonraki hesap Pro görünür
+      setIsPro(false);
     } catch (e) {
       console.error('Logout error:', e);
     }
@@ -434,9 +476,7 @@ export const UserProvider = ({ children }) => {
     }
     try {
       const { customerInfo } = await Purchases.purchasePackage(rcPackage);
-      if (customerInfo.entitlements.active[Config.PRO_ENTITLEMENT_ID]) {
-        setIsPro(true);
-        await AsyncStorage.setItem('isPro', 'true');
+      if (await applyProStatus(customerInfo)) {
         return true;
       }
     } catch (e) {
@@ -451,9 +491,7 @@ export const UserProvider = ({ children }) => {
     if (!Purchases) return false;
     try {
       const customerInfo = await Purchases.restorePurchases();
-      if (customerInfo.entitlements.active[Config.PRO_ENTITLEMENT_ID]) {
-        setIsPro(true);
-        await AsyncStorage.setItem('isPro', 'true');
+      if (await applyProStatus(customerInfo)) {
         return true;
       }
     } catch (e) {
@@ -470,19 +508,7 @@ export const UserProvider = ({ children }) => {
   const deleteAccount = async () => {
     try {
       if (user?.isDummy) {
-        const keysToClear = [
-          'user',
-          'userProfile',
-          'isPro',
-          'habits',
-          'breakHabits',
-          'extraHabits',
-          'focusHistory',
-          'focusSessionsToday',
-          'lastFocusDate',
-          'adRewardExpiry'
-        ];
-        await AsyncStorage.multiRemove(keysToClear);
+        await AsyncStorage.multiRemove(USER_DATA_KEYS);
         setUser(null);
         setIsPro(false);
         return { success: true };
@@ -490,6 +516,12 @@ export const UserProvider = ({ children }) => {
 
       const currentUser = auth.currentUser;
       if (currentUser) {
+        // Önce oturum tazeliğini kontrol et: aksi halde Firestore verisi silinir ama
+        // deleteUser 'requires-recent-login' ile düşer ve hesap verisiz kalır.
+        const lastSignIn = Date.parse(currentUser.metadata?.lastSignInTime || '');
+        if (!lastSignIn || Date.now() - lastSignIn > RECENT_LOGIN_WINDOW_MS) {
+          return { success: false, code: 'auth/requires-recent-login', error: 'requires-recent-login' };
+        }
         // Alışkanlıklar bulut verisini de sil
         try {
           await deleteDoc(doc(db, 'habits', currentUser.uid));
@@ -503,19 +535,7 @@ export const UserProvider = ({ children }) => {
         }
         await firebaseDeleteUser(currentUser);
       }
-      const keysToClear = [
-        'user',
-        'userProfile',
-        'isPro',
-        'habits',
-        'breakHabits',
-        'extraHabits',
-        'focusHistory',
-        'focusSessionsToday',
-        'lastFocusDate',
-        'adRewardExpiry'
-      ];
-      await AsyncStorage.multiRemove(keysToClear);
+      await AsyncStorage.multiRemove(USER_DATA_KEYS);
       setUser(null);
       setIsPro(false);
       return { success: true };

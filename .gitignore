@@ -42,3 +42,12 @@ yarn-error.*
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
+
+# gizli bilgi ve imzalama anahtarları
+.env*
+!.env.example
+*.keystore
+*.log
+
+# Windows'ta açılmamış ortam değişkeninden oluşan çöp klasör
+/%ProgramData%/

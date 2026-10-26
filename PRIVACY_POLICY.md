@@ -48,5 +48,5 @@ Our application may contain links to external sites (such as Terms of Service). 
 
 ## 6. Contact Us
 If you have any questions, requests regarding your data, or need assistance, please contact us at:
-- **Email:** support@onyxhabittracker.com / salihyedekler@gmail.com
+- **Email:** salihyedekler@gmail.com
 - **Project Repository:** https://github.com/salihUnal/onyx-habit-tracker

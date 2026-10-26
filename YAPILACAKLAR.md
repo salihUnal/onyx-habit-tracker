@@ -14,7 +14,7 @@
   - **Keystore Bilgileri:**
     - Dosya Yolu: `android/app/release.keystore`
     - Alias: `onyx-release-key`
-    - Şifre: `onyx2026release`
+    - Şifre: `<gizli: ~/.gradle/gradle.properties>`
 
 - [x] **1.2. Google Sign-In Android SHA-1 ve SHA-256 Parmak İzi Tespiti:**
   - **Durum:** ✅ **TAMAMLANDI.** Keystore parmak izleri çıkarıldı.

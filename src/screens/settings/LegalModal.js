@@ -94,8 +94,8 @@ const LegalModal = ({ visible, onClose, initialTab = 'privacy' }) => {
       </Text>
       <Text style={[styles.paragraph, { color: theme.colors.textSecondary }]}>
         {isTurkish
-          ? 'Gizlilik ile ilgili sorularınız için:\nE-posta: support@onyxhabittracker.com / salihyedekler@gmail.com'
-          : 'For inquiries regarding your data and privacy:\nEmail: support@onyxhabittracker.com / salihyedekler@gmail.com'}
+          ? 'Gizlilik ile ilgili sorularınız için:\nE-posta: salihyedekler@gmail.com'
+          : 'For inquiries regarding your data and privacy:\nEmail: salihyedekler@gmail.com'}
       </Text>
     </View>
   );

@@ -119,7 +119,13 @@ export const HabitProvider = ({ children }) => {
         await saveBreakHabits(mergedBreakHabits, true);
         NotificationService.syncAllHabitReminders(mergedHabits);
       } else {
-        await syncWithCloud(habits, breakHabits);
+        // State yerine diskteki veriyi yükle: state önceki hesaptan kalmış olabilir
+        const localHabitsRaw = await AsyncStorage.getItem('habits');
+        const localBreakHabitsRaw = await AsyncStorage.getItem('breakHabits');
+        await syncWithCloud(
+          localHabitsRaw ? JSON.parse(localHabitsRaw) : [],
+          localBreakHabitsRaw ? JSON.parse(localBreakHabitsRaw) : []
+        );
       }
     } catch (e) {
       if (e?.code === 'permission-denied' || e?.message?.includes('insufficient permissions') || e?.message?.includes('Missing or insufficient permissions')) {
@@ -153,9 +159,8 @@ export const HabitProvider = ({ children }) => {
   const loadHabits = async () => {
     try {
       const savedHabits = await AsyncStorage.getItem('habits');
-      if (savedHabits) {
-        setHabits(JSON.parse(savedHabits));
-      }
+      // Kayıt yoksa boşalt: çıkış sonrası önceki kullanıcının listesi ekranda kalmasın
+      setHabits(savedHabits ? JSON.parse(savedHabits) : []);
     } catch (e) {
       console.error('Failed to load habits', e);
     }
@@ -164,9 +169,7 @@ export const HabitProvider = ({ children }) => {
   const loadBreakHabits = async () => {
     try {
       const saved = await AsyncStorage.getItem('breakHabits');
-      if (saved) {
-        setBreakHabits(JSON.parse(saved));
-      }
+      setBreakHabits(saved ? JSON.parse(saved) : []);
     } catch (e) {
       console.error('Failed to load break habits', e);
     }
@@ -197,8 +200,8 @@ export const HabitProvider = ({ children }) => {
       const saved = await AsyncStorage.getItem('extraHabits');
       const savedExpiry = await AsyncStorage.getItem('adRewardExpiry');
 
-      if (saved) setExtraHabits(parseInt(saved, 10));
-      if (savedExpiry) setAdRewardExpiry(parseInt(savedExpiry, 10));
+      setExtraHabits(saved ? parseInt(saved, 10) : 0);
+      setAdRewardExpiry(savedExpiry ? parseInt(savedExpiry, 10) : null);
     } catch (e) {
       console.error('Failed to load extra habits', e);
     }
@@ -239,9 +242,7 @@ export const HabitProvider = ({ children }) => {
       const storedCount = await AsyncStorage.getItem('focusSessionsToday');
       const storedHistory = await AsyncStorage.getItem('focusHistory');
 
-      if (storedHistory) {
-        setFocusHistory(JSON.parse(storedHistory));
-      }
+      setFocusHistory(storedHistory ? JSON.parse(storedHistory) : {});
 
       if (storedDate === today) {
         setLastFocusDate(today);
