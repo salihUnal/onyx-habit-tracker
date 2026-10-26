@@ -1,4 +1,25 @@
 {
     "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.jdt.ls.java.home": "D:\\jdk-17",
+    "java.import.gradle.java.home": "D:\\jdk-17",
+    "gradle.java.home": "D:\\jdk-17",
+    "gradle.nestedProjects": [
+        "android"
+    ],
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-17",
+            "path": "D:\\jdk-17",
+            "default": true
+        }
+    ],
+    "java.import.exclusions": [
+        "**/node_modules/**",
+        "**/.expo/**"
+    ],
+    "files.watcherExclude": {
+        "**/node_modules/**": true,
+        "**/.expo/**": true
+    }
 }
