@@ -147,7 +147,7 @@ const StatsScreen = ({ navigation }) => {
                     <StatCard
                         icon={Award}
                         title={t('streak')}
-                        value={habits.length > 0 ? `${Math.max(...habits.map(h => h.streak))}g` : '0g'}
+                        value={habits.length > 0 ? `${Math.max(...habits.map(h => h.streak))}` : '0'}
                         color="#F59E0B"
                     />
                 </View>

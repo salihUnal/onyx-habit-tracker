@@ -206,8 +206,9 @@ const PaywallScreen = ({ navigation, route }) => {
           />
           <FeatureRow
             icon={Layout}
-            title={t('neonThemesAndBadges') || "Özel Neon Temalar & Rozetler"}
-            description={t('neonThemesAndBadgesDesc') || "Cyberpunk temalar ve premium rozetler"}
+            // Var olan Pro özelliği (kart temaları); uygulamada rozet özelliği yok, vaat edilmemeli
+            title={t('widgetStore')}
+            description={t('widgetSetupDesc').replace(/[:：]\s*$/, '')}
           />
           <FeatureRow
             icon={Unlink}

@@ -71,8 +71,12 @@ export const HabitProvider = ({ children }) => {
         merged.push(cloudItem);
       }
     });
-    return merged;
+    return withFreshStreaks(merged);
   };
+
+  // Seri yalnızca işaretlemede hesaplanıyordu; buluttan gelen veya günlerdir açılmamış kayıtta eski kalıyordu
+  const withFreshStreaks = (items) =>
+    items.map(item => ({ ...item, streak: calculateStreak(item.completedDates || []) }));
 
   const mergeBreakHabitsData = (localItems, cloudItems) => {
     const merged = [...localItems];
@@ -138,13 +142,14 @@ export const HabitProvider = ({ children }) => {
 
   const syncWithCloud = async (habitsToSync, breakHabitsToSync) => {
     if (!auth.currentUser) return;
+    // Yalnızca verilen alanı yaz: eksik alanı state'ten doldurmak, girişte buluttaki
+    // alışkanlıkları eski (boş) state ile ezip siliyordu
+    const payload = { lastUpdated: new Date().toISOString() };
+    if (habitsToSync) payload.habits = habitsToSync;
+    if (breakHabitsToSync) payload.breakHabits = breakHabitsToSync;
     try {
       await withTimeout(
-        setDoc(doc(db, 'habits', auth.currentUser.uid), {
-          habits: habitsToSync || habits,
-          breakHabits: breakHabitsToSync || breakHabits,
-          lastUpdated: new Date().toISOString()
-        }, { merge: true }),
+        setDoc(doc(db, 'habits', auth.currentUser.uid), payload, { merge: true }),
         5000
       );
     } catch (e) {
@@ -160,7 +165,7 @@ export const HabitProvider = ({ children }) => {
     try {
       const savedHabits = await AsyncStorage.getItem('habits');
       // Kayıt yoksa boşalt: çıkış sonrası önceki kullanıcının listesi ekranda kalmasın
-      setHabits(savedHabits ? JSON.parse(savedHabits) : []);
+      setHabits(savedHabits ? withFreshStreaks(JSON.parse(savedHabits)) : []);
     } catch (e) {
       console.error('Failed to load habits', e);
     }
