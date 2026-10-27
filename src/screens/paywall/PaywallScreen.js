@@ -36,6 +36,7 @@ const PaywallScreen = ({ navigation, route }) => {
   const [successModalVisible, setSuccessModalVisible] = React.useState(false);
   const [successMessage, setSuccessMessage] = React.useState('');
   const [offerings, setOfferings] = React.useState(null);
+  const [offeringsStatus, setOfferingsStatus] = React.useState('loading'); // loading | ready | unavailable
   const [legalModalVisible, setLegalModalVisible] = React.useState(false);
   const [legalTab, setLegalTab] = React.useState('privacy');
   const [restoring, setRestoring] = React.useState(false);
@@ -46,14 +47,19 @@ const PaywallScreen = ({ navigation, route }) => {
   }, []);
 
   const fetchOfferings = async () => {
-    if (!Purchases) return;
+    if (!Purchases) {
+      setOfferingsStatus('unavailable');
+      return;
+    }
+    setOfferingsStatus('loading');
     try {
       const offerings = await Purchases.getOfferings();
-      if (offerings.current !== null) {
-        setOfferings(offerings.current);
-      }
+      const current = offerings.current;
+      setOfferings(current);
+      setOfferingsStatus(current?.availablePackages?.length ? 'ready' : 'unavailable');
     } catch (e) {
-      console.error('Fetch Offerings Error:', e);
+      console.warn('Fetch Offerings Error:', e?.message || e);
+      setOfferingsStatus('unavailable');
     }
   };
 
@@ -101,10 +107,12 @@ const PaywallScreen = ({ navigation, route }) => {
   };
 
   const handlePurchase = async (pkg) => {
-    const success = await upgradeToPro(pkg);
+    const { success, cancelled } = await upgradeToPro(pkg);
     if (success) {
       setSuccessMessage(t('proActivated') || 'Onyx Pro Başarıyla Aktif Edildi!');
       setSuccessModalVisible(true);
+    } else if (!cancelled) {
+      Alert.alert(t('error'), t('purchaseFailed'));
     }
   };
 
@@ -232,7 +240,7 @@ const PaywallScreen = ({ navigation, route }) => {
             >
               {pkg.packageType === 'ANNUAL' && (
                 <View style={styles.popularBadge}>
-                  <Text style={styles.popularBadgeText}>🔥 EN POPÜLER - %50 TASARRUF</Text>
+                  <Text style={styles.popularBadgeText}>🔥 {t('mostPopular')}</Text>
                 </View>
               )}
               <LinearGradient
@@ -251,50 +259,27 @@ const PaywallScreen = ({ navigation, route }) => {
                 <Text style={[styles.priceText, pkg.packageType !== 'LIFETIME' && { color: theme.colors.textSecondary }]}>
                   {pkg.product.priceString} / {pkg.packageType === 'LIFETIME' ? t('lifetime') : pkg.packageType === 'ANNUAL' ? t('annual') : t('monthly')}
                 </Text>
-                {pkg.packageType === 'ANNUAL' && (
+                {pkg.product.introPrice?.price === 0 && (
                   <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '600', marginTop: 4 }}>
-                    🎁 3 Gün Ücretsiz Deneme ile Başla
+                    🎁 {t('freeTrialAvailable')}
                   </Text>
                 )}
               </LinearGradient>
             </TouchableOpacity>
           ))}
 
-          {!offerings && (
-            <View style={{ gap: 14 }}>
-              {/* Annual - Highlighted */}
-              <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.85} style={{ position: 'relative' }}>
-                <View style={styles.popularBadge}>
-                  <Text style={styles.popularBadgeText}>🔥 EN POPÜLER - %50 TASARRUF</Text>
-                </View>
-                <View style={[styles.purchaseButton, { backgroundColor: theme.colors.card, borderWidth: 2, borderColor: theme.colors.primary, shadowOpacity: 0.2, elevation: 4 }]}>
-                  <Text style={[styles.purchaseButtonText, { color: theme.colors.text }]}>{t('annualPro') || 'Yıllık Pro'}</Text>
-                  <Text style={[styles.priceText, { color: theme.colors.primary }]}>$19.99 / {t('annual') || 'Yıllık'}</Text>
-                  <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '600', marginTop: 4 }}>
-                    🎁 3 Gün Ücretsiz Deneme ile Başla
-                  </Text>
-                </View>
-              </TouchableOpacity>
+          {/* Mağazadan gelmeyen fiyat/deneme gösterilmez: sahte fiyat yanıltıcı sayılır */}
+          {offeringsStatus === 'loading' && (
+            <ActivityIndicator size="large" color={theme.colors.primary} style={{ paddingVertical: 24 }} />
+          )}
 
-              {/* Monthly */}
-              <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.85}>
-                <View style={[styles.purchaseButton, { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, shadowOpacity: 0.1, elevation: 2 }]}>
-                  <Text style={[styles.purchaseButtonText, { color: theme.colors.text }]}>{t('monthlyPro') || 'Aylık Pro'}</Text>
-                  <Text style={[styles.priceText, { color: theme.colors.textSecondary }]}>$2.99 / {t('monthly') || 'Aylık'}</Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* Lifetime */}
-              <TouchableOpacity onPress={() => handlePurchase(null)} activeOpacity={0.85}>
-                <LinearGradient
-                  colors={[theme.colors.primary, theme.colors.secondary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.purchaseButton}
-                >
-                  <Text style={styles.purchaseButtonText}>{t('unlockLifetime') || 'Ömür Boyu Pro'}</Text>
-                  <Text style={styles.priceText}>$29.99 / {t('lifetime') || 'Ömür Boyu'}</Text>
-                </LinearGradient>
+          {offeringsStatus === 'unavailable' && (
+            <View style={[styles.purchaseButton, { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center' }]}>
+              <Text style={[styles.priceText, { color: theme.colors.textSecondary, textAlign: 'center' }]}>
+                {t('purchasesUnavailable')}
+              </Text>
+              <TouchableOpacity onPress={fetchOfferings} activeOpacity={0.7} style={{ marginTop: 10, paddingVertical: 6, paddingHorizontal: 16 }}>
+                <Text style={{ color: theme.colors.primary, fontWeight: '700' }}>{t('retry')}</Text>
               </TouchableOpacity>
             </View>
           )}

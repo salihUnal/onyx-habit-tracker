@@ -464,27 +464,26 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  // Dönüş: { success, cancelled } — ekran iptal ile hatayı ayırt edip kullanıcıya uyarı gösterebilsin
   const upgradeToPro = async (rcPackage) => {
     if (!Purchases) {
       // DEV fallback
       if (__DEV__) {
         setIsPro(true);
         await AsyncStorage.setItem('isPro', 'true');
-        return true;
+        return { success: true, cancelled: false };
       }
-      return false;
+      return { success: false, cancelled: false };
     }
+    if (!rcPackage) return { success: false, cancelled: false };
     try {
       const { customerInfo } = await Purchases.purchasePackage(rcPackage);
-      if (await applyProStatus(customerInfo)) {
-        return true;
-      }
+      return { success: await applyProStatus(customerInfo), cancelled: false };
     } catch (e) {
-      if (!e.userCancelled) {
-        console.error('Purchase Error:', e);
-      }
+      if (e.userCancelled) return { success: false, cancelled: true };
+      console.error('Purchase Error:', e);
+      return { success: false, cancelled: false };
     }
-    return false;
   };
 
   const restorePurchases = async () => {

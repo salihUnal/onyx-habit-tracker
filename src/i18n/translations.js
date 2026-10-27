@@ -1,5 +1,9 @@
 export const translations = {
   "English": {
+    "purchasesUnavailable": "Purchases are not available right now. Please try again later.",
+    "mostPopular": "MOST POPULAR",
+    "purchaseFailed": "The purchase could not be completed. You have not been charged. Please try again.",
+    "freeTrialAvailable": "Free trial available",
     "locale": "en-US",
     "noHabitsTitle": "No habits yet",
     "noHabitsDesc": "Add your first habit to start changing your life.",
@@ -271,6 +275,10 @@ export const translations = {
     "openLinkError": "Could not open link."
   },
   "Türkçe": {
+    "purchasesUnavailable": "Satın alma şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+    "mostPopular": "EN POPÜLER",
+    "purchaseFailed": "Satın alma tamamlanamadı. Ücret alınmadı. Lütfen tekrar deneyin.",
+    "freeTrialAvailable": "Ücretsiz deneme mevcut",
     "locale": "tr-TR",
     "noHabitsTitle": "Henüz alışkanlık yok",
     "noHabitsDesc": "Hayatını değiştirmeye başlamak için ilk alışkanlığını ekle.",
@@ -543,6 +551,10 @@ export const translations = {
     "openLinkError": "Bağlantı açılamadı."
   },
   "German": {
+    "purchasesUnavailable": "Käufe sind derzeit nicht verfügbar. Bitte versuche es später erneut.",
+    "mostPopular": "AM BELIEBTESTEN",
+    "purchaseFailed": "Der Kauf konnte nicht abgeschlossen werden. Es wurde nichts berechnet. Bitte versuche es erneut.",
+    "freeTrialAvailable": "Kostenlose Testphase verfügbar",
     "locale": "de-DE",
     "noHabitsTitle": "Noch keine Gewohnheiten",
     "noHabitsDesc": "Füge deine erste Gewohnheit hinzu, um dein Leben zu verändern.",
@@ -814,6 +826,10 @@ export const translations = {
     "openLinkError": "Link konnte nicht geöffnet werden."
   },
   "Spanish": {
+    "purchasesUnavailable": "Las compras no están disponibles ahora. Inténtalo más tarde.",
+    "mostPopular": "MÁS POPULAR",
+    "purchaseFailed": "No se pudo completar la compra. No se te ha cobrado. Inténtalo de nuevo.",
+    "freeTrialAvailable": "Prueba gratuita disponible",
     "locale": "es-ES",
     "noHabitsTitle": "Aún no hay hábitos",
     "noHabitsDesc": "Añade tu primer hábito para empezar a cambiar tu vida.",
@@ -1085,6 +1101,10 @@ export const translations = {
     "openLinkError": "No se pudo abrir el enlace."
   },
   "Italian": {
+    "purchasesUnavailable": "Gli acquisti non sono disponibili al momento. Riprova più tardi.",
+    "mostPopular": "PIÙ POPOLARE",
+    "purchaseFailed": "Impossibile completare l'acquisto. Non ti è stato addebitato nulla. Riprova.",
+    "freeTrialAvailable": "Prova gratuita disponibile",
     "locale": "it-IT",
     "noHabitsTitle": "Ancora nessuna abitudine",
     "noHabitsDesc": "Aggiungi la tua prima abitudine per iniziare a cambiare la tua vita.",
@@ -1356,6 +1376,10 @@ export const translations = {
     "openLinkError": "Impossibile aprire il link."
   },
   "Russian": {
+    "purchasesUnavailable": "Покупки сейчас недоступны. Попробуйте позже.",
+    "mostPopular": "САМЫЙ ПОПУЛЯРНЫЙ",
+    "purchaseFailed": "Не удалось завершить покупку. Деньги не списаны. Попробуйте ещё раз.",
+    "freeTrialAvailable": "Доступен бесплатный пробный период",
     "locale": "ru-RU",
     "noHabitsTitle": "Пока нет привычек",
     "noHabitsDesc": "Добавьте первую привычку, чтобы начать менять свою жизнь.",
@@ -1627,6 +1651,10 @@ export const translations = {
     "openLinkError": "Не удалось открыть ссылку."
   },
   "Chinese": {
+    "purchasesUnavailable": "目前无法购买，请稍后再试。",
+    "mostPopular": "最受欢迎",
+    "purchaseFailed": "购买未能完成，未产生扣费。请重试。",
+    "freeTrialAvailable": "可免费试用",
     "locale": "zh-CN",
     "noHabitsTitle": "还没有习惯",
     "noHabitsDesc": "添加你的第一个习惯，开始改变你的生活。",
