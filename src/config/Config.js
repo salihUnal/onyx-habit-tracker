@@ -3,7 +3,7 @@ const Config = {
     // RevenueCat Configuration
     REVENUECAT_API_KEY_ANDROID: 'goog_ChTODdIPJptCkDcijJNjgikKfZd',
     REVENUECAT_API_KEY_IOS: 'test_akWXroIJFQOanamcckwTtuGpqyg',     // Keeping test key for iOS for now
-    PRO_ENTITLEMENT_ID: 'appd32a585f83',                      // Replace with your entitlement ID
+    PRO_ENTITLEMENT_ID: 'pro',                                // RevenueCat panelindeki entitlement identifier
 
     // AdMob Configuration
     ADMOB_APP_ID_ANDROID: 'ca-app-pub-9005956424727190~4380402516',

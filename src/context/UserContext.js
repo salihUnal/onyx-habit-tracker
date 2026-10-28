@@ -81,13 +81,9 @@ const USER_DATA_KEYS = [
 // Firebase hassas işlemler (hesap silme) için ~5 dk içinde giriş yapılmış olmasını ister.
 const RECENT_LOGIN_WINDOW_MS = 5 * 60 * 1000;
 
-// Uygulamada tek bir ücretli seviye var. Yapılandırılan entitlement ID'si
-// RevenueCat panelindekiyle eşleşmezse ödeme yapan kullanıcı Pro'yu kaybetmesin diye
-// herhangi bir aktif entitlement da Pro sayılır.
-const hasProEntitlement = (customerInfo) => {
-  const active = customerInfo?.entitlements?.active || {};
-  return Boolean(active[Config.PRO_ENTITLEMENT_ID]) || Object.keys(active).length > 0;
-};
+// Yalnızca RevenueCat'teki `pro` entitlement'ı Pro açar
+const hasProEntitlement = (customerInfo) =>
+  Boolean(customerInfo?.entitlements?.active?.[Config.PRO_ENTITLEMENT_ID]);
 
 const defaultUserContext = {
   user: null,
